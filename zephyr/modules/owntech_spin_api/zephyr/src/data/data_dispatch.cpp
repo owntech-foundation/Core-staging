@@ -333,14 +333,18 @@ void data_dispatch_do_dispatch(uint8_t adc_num)
 		uint32_t  current_count =
 					_data_dispatch_get_count(adc_index, channel_index);
 
-		/* Copy data only if the channel buffer has room */
-		if (current_count < CHANNELS_BUFFERS_SIZE)
+		/* A full buffer (nobody fetched this channel's values with
+		 * data.get*() since CHANNELS_BUFFERS_SIZE dispatches) keeps its
+		 * last slot for the newest value: peek() stays current and
+		 * nothing is written past the end of the buffer (Core#173). */
+		if (current_count >= CHANNELS_BUFFERS_SIZE)
 		{
-			active_buffer[current_count] = dma_buffer[dma_buffer_index];
-
-			/* Increment count */
-			_data_dispatch_increment_count(adc_index, channel_index);
+			current_count = CHANNELS_BUFFERS_SIZE - 1;
 		}
+		active_buffer[current_count] = dma_buffer[dma_buffer_index];
+
+		/* Increment count (saturates at CHANNELS_BUFFERS_SIZE) */
+		_data_dispatch_increment_count(adc_index, channel_index);
 
 		/* Advance to the next sample and channel */
 		dma_buffer_index++;
