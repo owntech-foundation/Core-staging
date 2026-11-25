@@ -7,7 +7,7 @@
 ##        communication.analog.setAnalogCommValue() must put it in DAC2's output register and on PA6.
 ##
 ## PA6 reaches scope CH1 through the MUX (mux1 input 6). Levels 512..3584 keep inside the output buffer's linear
-## range (about 0.2 V to VDDA - 0.2 V); level 0 is recorded only. Expected voltage: n * 3.3 V / 4096.
+## range (about 0.2 V to VREF+ - 0.2 V); level 0 is recorded only. Expected voltage: n * 2.048 V / 4096 (VREFBUF).
 import os
 import statistics
 import sys
@@ -24,7 +24,7 @@ MAGIC = 0x44414331  # "DAC1", tests/firmware/dac/main.cpp
 LAYOUT = 1
 FIELDS = ['magic', 'layout', 'cmd', 'cmd_seq', 'ack_seq', 'applied', 'ticks']
 LEVELS = [512, 1024, 2048, 3072, 3584]
-VREF = 3.3
+VREF = 2.048  # VREFBUF: the DAC and the ADCs share it (DacHAL.cpp VREF)
 TOL_V = 0.060  # scope DC accuracy at 0.5 V/div plus the buffered DAC's offset
 DAC2_DOR1 = 0x50000C2C  # STM32G474 DAC2 base 0x50000C00, DOR1 offset 0x2C
 CUT_PIN = 'PA6'
@@ -106,10 +106,10 @@ def levels(addr, rep, scope, mux):
     """Each level: command it, read DAC2's output register over SWD, measure PA6 on CH1. @return exit code."""
     mux.disable_all()
     mux.route('ch1', CUT_PIN)
-    scope.setup_channel(1, scale=0.5, offset=-1.65, probe=10)
+    scope.setup_channel(1, scale=0.5, offset=-1.0, probe=10)
     scope.set_acquire('NORMal')
     scope.set_timebase(1e-3)
-    scope.set_edge_trigger(1, 1.65, sweep='AUTO')
+    scope.set_edge_trigger(1, 1.0, sweep='AUTO')
     scope.run()
     time.sleep(1.5)
 

@@ -366,7 +366,7 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-DAC-04",
    "title": "Analog bus DAC (Core#168): PA6 voltage at each level",
-   "criterion": "median of 5 VAVG on CH1 = n × 3.3 V / 4096 ±60 mV, at 512, 1024, 2048, 3072, 3584 (.a-.e)"
+   "criterion": "median of 5 VAVG on CH1 = n × 2.048 V / 4096 (VREFBUF) ±60 mV, at 512, 1024, 2048, 3072, 3584 (.a-.e)"
   },
   {
    "tab": "bench",
