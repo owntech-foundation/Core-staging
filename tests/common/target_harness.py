@@ -30,9 +30,18 @@ def flash(env, log_path):
     """@brief Builds and flashes env over the ST-Link; restores zephyr/CMakeLists.txt's board lines. @return rc."""
     # A fresh build folder needs Kconfig/ before Zephyr's CMake runs (Kconfig.modules).
     os.makedirs(os.path.join(REPO, '.pio', 'build', env, 'Kconfig'), exist_ok=True)
+    # The envs' pre-scripts (owntech/scripts/pre_stlink.py, pre_usb.py) rewrite the console line of the tracked
+    # spin.dts; put back what was there, so a campaign does not leave the tree modified (record: "-dirty").
+    dts = os.path.join(REPO, 'zephyr', 'boards', 'owntech', 'spin', 'spin.dts')
+    with open(dts) as f:
+        dts_before = f.read()
     with open(log_path, 'w') as f:
         r = subprocess.run([PIO, 'run', '-e', env, '-t', 'upload'], cwd=REPO, stdout=f, stderr=subprocess.STDOUT)
     subprocess.run([sys.executable, os.path.join(REPO, 'tools', 'restore_board_lines.py')], cwd=REPO)
+    with open(dts) as f:
+        if f.read() != dts_before:
+            with open(dts, 'w') as g:
+                g.write(dts_before)
     return r.returncode
 
 
