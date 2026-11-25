@@ -1,6 +1,6 @@
 {
  "_doc": "Every test of the board-agnostic validation, defined once (tests/common/catalogue.py). Shield-specific tests live on the application branches.",
- "version": "framework-1",
+ "version": "framework-2",
  "tabs": [
   {
    "id": "framework",
@@ -8,6 +8,14 @@
    "question": "Does the test framework itself work: runner, record, review page and control center, without hardware?",
    "notes": [
     "Run `tests/run_all.sh --l0`. The review page needs `.venv`: `python3 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt`."
+   ]
+  },
+  {
+   "id": "target",
+   "title": "On target",
+   "question": "Can a test firmware be built, flashed and read over SWD on a Spin?",
+   "notes": [
+    "On-target tests run through an ST-Link: `tests/run_all.sh --l0 --target`. They reflash the Spin on the ST-Link: flash its usual firmware again afterwards. Without `--target` they report BLOCKED."
    ]
   }
  ],
@@ -55,6 +63,61 @@
    "source": "`tests/l0/framework_selftest/run.sh`, `tests/requirements.txt`",
    "status": "implemented",
    "harness": "tests/run_all.sh --l0"
+  },
+  {
+   "id": "L0-TGT-00",
+   "tab": "target",
+   "level": "L0",
+   "title": "On-target harness failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when the script exits non-zero without reporting a FAIL itself.",
+   "source": "campaign runner (`tests/run_all.sh`)",
+   "status": "implemented",
+   "status_note": "Infrastructure fallback",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "A Spin with MCUboot, ST-Link over SWD; env SMOKE",
+   "source": "`tests/l0/target_smoke/run.py`, `tests/firmware/smoke/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TGT-01",
+   "title": "Test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e SMOKE -t upload` exits 0"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "A Spin with MCUboot, ST-Link over SWD; env SMOKE",
+   "source": "`tests/l0/target_smoke/run.py`, `tests/firmware/smoke/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TGT-02",
+   "title": "Report struct read over SWD",
+   "criterion": "magic 0x534d4b31, layout 1, read without halting, within 30 s of the upload"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "A Spin with MCUboot, ST-Link over SWD; env SMOKE",
+   "source": "`tests/l0/target_smoke/run.py`, `tests/firmware/smoke/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TGT-03",
+   "title": "Test firmware runs",
+   "criterion": ">= 50 background-task ticks in 2 s (10 ms task)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "A Spin with MCUboot, ST-Link over SWD; env SMOKE",
+   "source": "`tests/l0/target_smoke/run.py`, `tests/firmware/smoke/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TGT-04",
+   "title": "MCU identity",
+   "criterion": "INFO: DBGMCU_IDCODE"
   }
  ]
 }
