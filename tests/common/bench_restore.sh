@@ -26,8 +26,14 @@ fi
 bench_lock "tests/common/bench_restore.sh" || exit 1
 echo "bench_restore: uploading Core-CUT ($(git -C "$cut" rev-parse --short HEAD 2>/dev/null || echo '?')) over the ST-Link"
 if ! "$PIO" run -d "$cut" -e STLink -t upload; then
-    echo "bench_restore: upload failed" >&2
-    exit 1
+    # An interrupted build (a full disk, a killed job) leaves the incremental build inconsistent, and every later
+    # restore then fails the same way: retry once from a clean build.
+    echo "bench_restore: upload failed; retrying from a clean build of Core-CUT" >&2
+    rm -rf "$cut/.pio/build/STLink"
+    if ! "$PIO" run -d "$cut" -e STLink -t upload; then
+        echo "bench_restore: upload failed again" >&2
+        exit 1
+    fi
 fi
 py=python3; [ -x "$here/../../.venv/bin/python" ] && py="$here/../../.venv/bin/python"
 # After the upload the CUT resets and its USB enumerates again: give it up to ~30 s.
