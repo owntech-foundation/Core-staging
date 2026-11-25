@@ -71,6 +71,13 @@ step "4. tools for $USER_NAME"
 if [ ! -x "$HOME_DIR/.platformio/penv/bin/pio" ]; then
     as_runner "curl -fsSL -o get-platformio.py https://raw.githubusercontent.com/platformio/platformio-core-installer/master/get-platformio.py && python3 get-platformio.py && rm get-platformio.py"
 fi
+# OpenOCD 3.1200.0: Core asks for tool-openocd unversioned, so a fresh install gets the newest (3.1200.7), whose
+# stlink.cfg rejects the `transport select hla_swd` that platform ststm32@19.0.0 adds for ST-Link uploads.
+OPENOCD_VERSION=3.1200.0
+ocd_pkg=$HOME_DIR/.platformio/packages/tool-openocd/package.json
+if ! grep -q "\"version\": \"$OPENOCD_VERSION\"" "$ocd_pkg" 2>/dev/null; then
+    as_runner "rm -rf .platformio/packages/tool-openocd .platformio/packages/tool-openocd@* && .platformio/penv/bin/pio pkg install -g -t platformio/tool-openocd@$OPENOCD_VERSION"
+fi
 if [ ! -x "$VENV/bin/python" ]; then as_runner "python3 -m venv $VENV"; fi
 install -o "$USER_NAME" -m 0644 "$repo/tests/requirements.txt" "$HOME_DIR/requirements.txt"
 as_runner "$VENV/bin/pip install -q -r requirements.txt"
