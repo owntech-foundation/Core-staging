@@ -1,0 +1,148 @@
+# SPOC bench campaign for a pull request, on the self-hosted runner that drives the bench.
+#
+# Only this file, on main, may reach the bench: the runner's pre-job hook (tests/runner/job_started.sh) refuses
+# any other workflow. A maintainer reads the PR's diff (firmware, but also build scripts, tests/ and Python: building
+# is executing), then either adds the label `spoc-run` or runs
+#   gh workflow run spoc.yml -R owntech-foundation/Core-staging -f pr=<N> -f sha=<reviewed head SHA>
+# The job then waits on the environment `spoc-bench` until Luiz approves it, and runs the exact SHA reviewed.
+# The record goes to the job summary, the campaign folder to an artifact, and a verdict comment to the PR.
+# Setup of the bench host: tests/runner/README.md.
+name: SPOC bench
+
+on:
+  pull_request_target:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number
+        required: true
+      sha:
+        description: Exact head SHA you reviewed
+        required: true
+      campaign:
+        description: Campaign
+        type: choice
+        default: --l0 --target
+        options: [--l0 --target, --l0]
+
+permissions: {}
+
+jobs:
+  bench:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'spoc-run'
+    runs-on: [self-hosted, linux, spoc]
+    environment: spoc-bench
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    concurrency:
+      group: spoc-bench
+      queue: max
+    outputs:
+      verdict: ${{ steps.record.outputs.verdict }}
+      summary: ${{ steps.record.outputs.summary }}
+      pr: ${{ steps.target.outputs.pr }}
+      sha: ${{ steps.target.outputs.sha }}
+    env:
+      PR: ${{ github.event.pull_request.number || inputs.pr }}
+      SHA: ${{ github.event.pull_request.head.sha || inputs.sha }}
+      CAMPAIGN: ${{ inputs.campaign || '--l0 --target' }}
+      ACTOR: ${{ github.actor }}
+    steps:
+      - name: Check the inputs
+        id: target
+        run: |
+          [[ "$PR" =~ ^[0-9]+$ ]] || { echo "::error::pr must be a number"; exit 1; }
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha must be a full 40-character commit SHA"; exit 1; }
+          case "$CAMPAIGN" in "--l0 --target"|"--l0") ;; *) echo "::error::unknown campaign"; exit 1 ;; esac
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the reviewed SHA
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+          persist-credentials: false
+
+      # The bench restore always comes from main, so a PR cannot change how the bench is put back to rest.
+      - name: Check out main's bench tools
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: .bench-main
+          sparse-checkout: tests/common
+          persist-credentials: false
+
+      - name: Prepare the workspace
+        run: |
+          ln -sfn "$SPOC_VENV" .venv
+          ln -sfn "$SPOC_VENV" .bench-main/.venv
+          git config user.name "SPOC bench runner (approved run by $ACTOR)"
+          echo "/.bench-main/" >> .git/info/exclude
+
+      - name: Bench to rest (CUT on Core-CUT)
+        run: bash .bench-main/tests/common/bench_restore.sh
+
+      - name: Campaign
+        run: tests/run_all.sh $CAMPAIGN
+
+      - name: Record
+        id: record
+        if: always()
+        run: |
+          rec=$(ls -1d tests/out/*/record.md 2>/dev/null | tail -1)
+          if [ -z "$rec" ]; then
+            echo "verdict=NO RECORD" >> "$GITHUB_OUTPUT"
+            echo "No record written: see the Campaign step's log." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          awk 'NR==1 && /^---$/ {fm=1; next} fm && /^---$/ {fm=0; next} !fm' "$rec" >> "$GITHUB_STEP_SUMMARY"
+          verdict=$(sed -n 's/^verdict: //p' "$rec" | head -1)
+          summary=$(grep -m1 '^\*\*Campaign verdict' "$rec" | sed 's/\*\*//g')
+          echo "verdict=${verdict:-UNKNOWN}" >> "$GITHUB_OUTPUT"
+          echo "summary=${summary}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the campaign
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: spoc-campaign-pr${{ env.PR }}-${{ env.SHA }}
+          path: tests/out/
+          if-no-files-found: warn
+
+      - name: Bench to rest after the campaign
+        if: always()
+        run: bash .bench-main/tests/common/bench_restore.sh
+
+  comment:
+    needs: bench
+    if: always() && needs.bench.outputs.pr != ''
+    runs-on: ubuntu-latest   # the write token never reaches the bench host
+    permissions:
+      pull-requests: write
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ needs.bench.outputs.pr }}
+      SHA: ${{ needs.bench.outputs.sha }}
+      VERDICT: ${{ needs.bench.outputs.verdict || 'NO RECORD' }}
+      SUMMARY: ${{ needs.bench.outputs.summary }}
+      RESULT: ${{ needs.bench.result }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Post or update the bench comment
+        run: |
+          marker='<!-- spoc-bench -->'
+          body=$(printf '%s\n### SPOC bench: %s\n\n%s\n\nCommit `%s`, job %s. Record in the [run summary](%s); campaign folder (report.html and figures) in its artifacts.\n' \
+            "$marker" "$VERDICT" "${SUMMARY:-No record: see the run log.}" "${SHA:0:7}" "$RESULT" "$RUN_URL")
+          id=$(gh api "repos/$GH_REPO/issues/$PR/comments" --paginate \
+                 --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$id" -f body="$body" > /dev/null
+          else
+            gh api -X POST "repos/$GH_REPO/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
+          # A new run needs a fresh label, added after the next review.
+          gh api -X DELETE "repos/$GH_REPO/issues/$PR/labels/spoc-run" > /dev/null 2>&1 || true

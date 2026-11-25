@@ -32,6 +32,8 @@ if [ "$run" != 1 ]; then
 fi
 py=python3; [ -x "$repo/.venv/bin/python" ] && py="$repo/.venv/bin/python"
 if [ -z "${CORE_TEST_OUT:-}" ]; then
+    . "$repo/tests/common/bench_lock.sh"
+    bench_lock "tests/l0/spoc_cal/run.sh --run" || exit 1
     sha=$(git -C "$repo" rev-parse --short=7 HEAD)
     [ -z "$(git -C "$repo" status --porcelain --untracked-files=no)" ] || sha="$sha-dirty"
     mkdir -p "$repo/tests/out"

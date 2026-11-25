@@ -6,7 +6,8 @@
 ## @brief Runs a test campaign (L0 and/or L1) and writes its test record.
 ##
 ## Runs every tests/l0/*/run.sh and, when present, tests/l1/run.sh, logging
-## each one to the campaign folder. A script that exits non-zero without
+## each one to the campaign folder. L0 tests run alphabetically, except that
+## those marked "## @flashes-cut" run last (they leave the CUT off Core-CUT). A script that exits non-zero without
 ## reporting a FAIL itself (build error, crash, sanitizer abort) gets a FAIL
 ## criterion added, so it cannot go unnoticed. tests/common/make_record.py then
 ## writes record.md, then report.html (the review page).
@@ -35,6 +36,11 @@ for arg in "$@"; do
     esac
 done
 [ ${#levels[@]} -eq 0 ] && levels=(L0 L1)
+# On-target campaigns hold the bench (ST-Link, Spins, scope) for their whole run.
+if [ "${CORE_TARGET:-0}" = 1 ]; then
+    . "$repo/tests/common/bench_lock.sh"
+    bench_lock "tests/run_all.sh $*" || exit 1
+fi
 
 sha=$(git -C "$repo" rev-parse --short=7 HEAD)
 [ -z "$(git -C "$repo" status --porcelain --untracked-files=no)" ] || sha="$sha-dirty"
@@ -83,7 +89,13 @@ for level in "${levels[@]}"; do
         echo "== $level: no test cases yet"
         continue
     fi
-    for script in "${scripts[@]}"; do run_script "$level" "$script"; done
+    # Tests that reflash the CUT (a "## @flashes-cut" line in their run.sh) run last: the SPOC tests need the
+    # CUT on Core-CUT, and only tests/common/bench_restore.sh puts it back.
+    rest=() flashing=()
+    for script in "${scripts[@]}"; do
+        if grep -q '^## @flashes-cut' "$script"; then flashing+=("$script"); else rest+=("$script"); fi
+    done
+    for script in "${rest[@]}" "${flashing[@]}"; do run_script "$level" "$script"; done
 done
 
 shopt -s nullglob

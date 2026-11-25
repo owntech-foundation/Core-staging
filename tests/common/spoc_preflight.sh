@@ -12,7 +12,7 @@ for role in ${SPOC_ROLES:-mux cut}; do
 done
 tmc=$($py -c "import rigol_mho as r; print(r.scope_path())")
 if [ ! -e "$tmc" ]; then miss "scope $tmc" "plug the MHO984 USB"
-elif [ ! -w "$tmc" ]; then miss "scope write access" "sudo cp tests/common/udev/99-rigol-usbtmc.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger, then replug"
+elif [ ! -w "$tmc" ]; then miss "scope write access" "sudo cp tests/common/udev/99-rigol-usbtmc.rules /etc/udev/rules.d/ && sudo udevadm control --reload, then replug"
 else
   idn=$(timeout 40 $py -c "import rigol_mho as r; s=r.RigolScope(r.open_transport()); print(s.idn())" 2>/dev/null)
   [ -n "$idn" ] && ok "scope on $tmc: $idn" || miss "scope answers *IDN?" "replug the scope's USB cable (usbtmc out of step)"
