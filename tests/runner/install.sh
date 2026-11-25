@@ -15,11 +15,11 @@
 ## @return 0 when every step is done.
 ##
 ## @par Usage
-##   RUNNER_TOKEN=$(gh api -X POST repos/owntech-foundation/Core-staging/actions/runners/registration-token --jq .token) \
-##   SPOC_SOFTWARE_SRC=~/code/SPOC_Software \
-##   sudo -E bash tests/runner/install.sh
+##   sudo RUNNER_TOKEN=$(gh api -X POST repos/owntech-foundation/Core-staging/actions/runners/registration-token --jq .token) \
+##        SPOC_SOFTWARE_SRC=$HOME/code/SPOC_Software bash tests/runner/install.sh
+## (sudo drops variables set before it; set them after it, as above. The token is valid for one hour.)
 set -euo pipefail
-[ "$(id -u)" -eq 0 ] || { echo "run as root: sudo -E bash $0" >&2; exit 1; }
+[ "$(id -u)" -eq 0 ] || { echo "run as root: see the usage at the top of $0" >&2; exit 1; }
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 USER_NAME=spoc-runner
@@ -50,8 +50,17 @@ id "$USER_NAME"
 step "2. udev rules"
 install -m 0644 "$here/99-spoc-bench.rules" /etc/udev/rules.d/99-spoc-bench.rules
 udevadm control --reload
-udevadm trigger
-sleep 2
+# Re-apply the rules to the bench devices only (scope 1ab1, ST-Link 0483, Spins 2fe3) and their children.
+# A bare `udevadm trigger` replays every device on the computer, display and input included, and can restart
+# the desktop session (it did, on the first install).
+for dev in /sys/bus/usb/devices/*; do
+    [ -f "$dev/idVendor" ] || continue
+    case "$(cat "$dev/idVendor")" in
+        1ab1|0483|2fe3) udevadm trigger --action=change --parent-match="$dev" ;;
+    esac
+done
+udevadm settle --timeout=10
+sleep 1
 ls -l /dev/spoc-* 2>/dev/null || echo "no /dev/spoc-* yet: replug the bench USB (scope, ST-Link, Spins)"
 
 step "3. pre-job hook"

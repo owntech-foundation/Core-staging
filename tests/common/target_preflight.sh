@@ -65,7 +65,7 @@ if [ -x "$OPENOCD" ]; then
     out=$("$OPENOCD" "${OCD_ARGS[@]}" -c init -c "mdw 0x08000000" -c shutdown 2>&1)
     if echo "$out" | grep -q 'LIBUSB_ERROR_ACCESS'; then
         miss "USB access to the ST-Link" "permission denied (udev rules missing)" \
-            "curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/system/99-platformio-udev.rules | sudo tee /etc/udev/rules.d/99-platformio-udev.rules && sudo udevadm control --reload-rules && sudo udevadm trigger   (then unplug and replug the ST-Link; needs administrator rights)"
+            "curl -fsSL https://raw.githubusercontent.com/platformio/platformio-core/develop/platformio/assets/system/99-platformio-udev.rules | sudo tee /etc/udev/rules.d/99-platformio-udev.rules && sudo udevadm control --reload-rules   (then unplug and replug the ST-Link; needs administrator rights)"
     elif echo "$out" | grep -qiE 'open failed|no device found|unable to open'; then
         miss "ST-Link opened by OpenOCD" "OpenOCD found no usable probe" "check the USB cable; update the probe firmware with STM32CubeProgrammer if OpenOCD reports an old version"
     elif ! echo "$out" | grep -q '^0x08000000:'; then

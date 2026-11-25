@@ -16,7 +16,7 @@ Shared code for every test. Nothing here is compiled into the firmware.
 | [`rigol_mho.py`](rigol_mho.py) | Rigol MHO984 over Linux usbtmc (SPOC bench): setup, single acquisition, the scope's own measurements, screen waveforms. Standalone: `python3 tests/common/rigol_mho.py` prints `*IDN?` and CH1..CH4 measurements |
 | [`spoc/`](spoc/) | SPOC bench host side: `boards.py` finds the CUT and MUX shell ports by their ThingSet root; `thingset.py`, `mux_controller.py` copied from SPOC_Software (`MuxController.route('ch1', 'PA8')`); `waveform.py` metrics; firmware pins `CUT_FW`, `MUX_FW` in `__init__.py` |
 | [`spoc_preflight.sh`](spoc_preflight.sh) | What the SPOC bench needs: both Spins, scope access, scope answering `*IDN?` |
-| [`udev/`](udev/) | `99-rigol-usbtmc.rules`: MHO984 access without root (`sudo cp tests/common/udev/99-rigol-usbtmc.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger`, then replug the scope) |
+| [`udev/`](udev/) | `99-rigol-usbtmc.rules`: MHO984 access without root (`sudo cp tests/common/udev/99-rigol-usbtmc.rules /etc/udev/rules.d/ && sudo udevadm control --reload`, then replug the scope) |
 
 ## check.h
 

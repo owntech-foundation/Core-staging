@@ -48,10 +48,13 @@ ST-Link in the middle of the campaign. L0-TGT could not open the probe, and L0-C
 ## Host setup (once per bench computer)
 
 ```sh
-RUNNER_TOKEN=$(gh api -X POST repos/owntech-foundation/Core-staging/actions/runners/registration-token --jq .token) \
-SPOC_SOFTWARE_SRC=~/code/SPOC_Software \
-sudo -E bash tests/runner/install.sh
+sudo RUNNER_TOKEN=$(gh api -X POST repos/owntech-foundation/Core-staging/actions/runners/registration-token --jq .token) \
+     SPOC_SOFTWARE_SRC=$HOME/code/SPOC_Software bash tests/runner/install.sh
 ```
+
+Variables go after `sudo`, because sudo drops the ones set before it. The registration token is valid for one hour.
+The script re-applies the udev rules to the bench's USB devices only. Never run a bare `udevadm trigger`: it
+replays every device on the computer and can restart the desktop session.
 
 [`install.sh`](install.sh) can be run again safely. It sets up:
 
