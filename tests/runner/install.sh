@@ -23,7 +23,11 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 USER_NAME=spoc-runner
-HOME_DIR=/var/lib/spoc-runner
+HOME_DIR=/var/lib/spoc-runner   # the path everything refers to; may be a symlink to DATA_DIR
+# Where the runner's files really live: PlatformIO toolchains, Core-CUT and job builds take over 12 GB. On a laptop
+# whose / is a small partition, keep them on the large one (the first install filled / and broke the build).
+DATA_DIR=${SPOC_RUNNER_DATA:-/home/spoc-runner}
+MIN_FREE_GB=15
 HOOK_DIR=/usr/local/lib/spoc-runner
 RUNNER_VERSION=${RUNNER_VERSION:-2.338.2}
 RUNNER_URL=https://github.com/owntech-foundation/Core-staging
@@ -34,17 +38,29 @@ SPOC_SOFTWARE_SRC=${SPOC_SOFTWARE_SRC:-}
 step() { echo; echo "== $*"; }
 as_runner() { sudo -u "$USER_NAME" -H bash -c "cd $HOME_DIR && $1"; }
 
+step "0. disk space"
+if [ ! -e "$HOME_DIR" ]; then
+    mkdir -p "$DATA_DIR"
+    [ "$DATA_DIR" = "$HOME_DIR" ] || ln -s "$DATA_DIR" "$HOME_DIR"
+fi
+free_gb=$(df -P --block-size=1G "$(readlink -f "$HOME_DIR")" | awk 'NR==2 {print $4}')
+echo "$(readlink -f "$HOME_DIR"): ${free_gb} GB free"
+if [ "$free_gb" -lt "$MIN_FREE_GB" ] && [ ! -x "$HOME_DIR/.platformio/penv/bin/pio" ]; then
+    echo "REFUSED: under $MIN_FREE_GB GB free for the runner; set SPOC_RUNNER_DATA to a larger partition" >&2; exit 1
+fi
+
 step "1. user $USER_NAME"
 if ! id "$USER_NAME" >/dev/null 2>&1; then
-    useradd --system --create-home --home-dir "$HOME_DIR" --shell /bin/bash "$USER_NAME"
+    useradd --system --no-create-home --home-dir "$HOME_DIR" --shell /bin/bash "$USER_NAME"
 fi
+chown "$USER_NAME:$USER_NAME" "$(readlink -f "$HOME_DIR")"
 usermod -aG plugdev,dialout "$USER_NAME"
 for g in sudo docker; do
     if id -nG "$USER_NAME" | tr ' ' '\n' | grep -qx "$g"; then
         echo "REFUSED: $USER_NAME is in group $g, which gives root; remove it (gpasswd -d $USER_NAME $g)" >&2; exit 1
     fi
 done
-chmod 0750 "$HOME_DIR"
+chmod 0750 "$(readlink -f "$HOME_DIR")"
 id "$USER_NAME"
 
 step "2. udev rules"
