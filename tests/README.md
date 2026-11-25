@@ -27,7 +27,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 
 **On-target tests** build a test firmware from `tests/firmware/` and flash it through an ST-Link into the MCUboot slot of the Spin on the probe. They run after the other L0 tests. On the SPOC bench, put the CUT back on Core-CUT afterwards: `SPOC_CUT_DIR=<Core-CUT checkout> bash tests/common/bench_restore.sh`.
 
-**On a pull request**: a maintainer runs the campaign on the SPOC bench through GitHub, with the label `spoc-run` or `gh workflow run spoc.yml`. See [`runner/`](runner/README.md).
+**On a pull request**: a maintainer runs the campaign on the SPOC bench through GitHub, with the label `spoc-run` or `gh workflow run spoc.yml`. See [`runner/`](runner/README.md). On-target runs take a host-wide bench lock ([`common/bench_lock.sh`](common/bench_lock.sh)): anything else that flashes or drives the bench must take it too.
 
 ## Layout
 

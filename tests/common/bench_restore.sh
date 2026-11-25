@@ -22,14 +22,21 @@ if [ -z "$cut" ] || [ ! -f "$cut/platformio.ini" ]; then
     echo "bench_restore: SPOC_CUT_DIR must name a checkout of SPOC_Software, branch Core-CUT (now '${cut}')" >&2
     exit 2
 fi
+. "$here/bench_lock.sh"
+bench_lock "tests/common/bench_restore.sh" || exit 1
 echo "bench_restore: uploading Core-CUT ($(git -C "$cut" rev-parse --short HEAD 2>/dev/null || echo '?')) over the ST-Link"
 if ! "$PIO" run -d "$cut" -e STLink -t upload; then
     echo "bench_restore: upload failed" >&2
     exit 1
 fi
 py=python3; [ -x "$here/../../.venv/bin/python" ] && py="$here/../../.venv/bin/python"
-# The CUT boots in about 2 s; boards.find retries.
-port=$(cd "$here" && "$py" -c "from spoc.boards import find; print(find('cut', tries=5) or '')")
+# After the upload the CUT resets and its USB enumerates again: give it up to ~30 s.
+port=
+for _ in 1 2 3 4 5 6; do
+    sleep 3
+    port=$(cd "$here" && "$py" -c "from spoc.boards import find; print(find('cut') or '')")
+    [ -n "$port" ] && break
+done
 if [ -z "$port" ]; then
     echo "bench_restore: the CUT does not answer as Core-CUT after the upload" >&2
     exit 1

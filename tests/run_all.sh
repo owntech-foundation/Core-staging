@@ -36,6 +36,11 @@ for arg in "$@"; do
     esac
 done
 [ ${#levels[@]} -eq 0 ] && levels=(L0 L1)
+# On-target campaigns hold the bench (ST-Link, Spins, scope) for their whole run.
+if [ "${CORE_TARGET:-0}" = 1 ]; then
+    . "$repo/tests/common/bench_lock.sh"
+    bench_lock "tests/run_all.sh $*" || exit 1
+fi
 
 sha=$(git -C "$repo" rev-parse --short=7 HEAD)
 [ -z "$(git -C "$repo" status --porcelain --untracked-files=no)" ] || sha="$sha-dirty"

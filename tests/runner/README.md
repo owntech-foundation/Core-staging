@@ -29,6 +29,22 @@ the job waits.
   line in their `run.sh` run last. **A new test that reflashes the CUT must carry that line.** Otherwise the
   SPOC tests after it find the CUT off Core-CUT.
 
+## Sharing the bench
+
+The GitHub `concurrency` group only orders GitHub jobs. People and assistant sessions on the bench computer use
+it too. So every bench user takes a **host-wide lock**,
+[`tests/common/bench_lock.sh`](../common/bench_lock.sh) (`/run/lock/spoc-bench.lock`). `run_all.sh --target`,
+`bench_restore.sh` and `spoc_cal/run.sh --run` take it and wait while it is held. `/run/lock/spoc-bench.lock.who`
+says who holds it. A script that flashes or drives the bench outside these entry points (a bare
+`pio run -t upload`, for example) must take it too:
+
+```sh
+. tests/common/bench_lock.sh && bench_lock "what I am doing"; pio run -e <env> -t upload
+```
+
+The first campaign run for this README showed why. A session flashing the CUT from another checkout took the
+ST-Link in the middle of the campaign. L0-TGT could not open the probe, and L0-CAL read CH2–4 as invalid.
+
 ## Host setup (once per bench computer)
 
 ```sh
@@ -55,8 +71,8 @@ Settings on the repository (already applied on Core-staging): fork PRs need appr
 the environment `spoc-bench` (required reviewer Luiz, administrators cannot bypass, branch `main` only) and the
 label `spoc-run`.
 
-**Working on the bench by hand**: stop the service first (`sudo /var/lib/spoc-runner/actions-runner/svc.sh stop`),
-otherwise a queued campaign may take the ST-Link from you. Start it again afterwards, then run
+**Working on the bench by hand**: take the lock (above), or stop the service
+(`sudo /var/lib/spoc-runner/actions-runner/svc.sh stop`) and start it again afterwards. Then run
 `SPOC_CUT_DIR=/var/lib/spoc-runner/Core-CUT bash tests/common/bench_restore.sh` if you reflashed the CUT.
 
 ## Limits
