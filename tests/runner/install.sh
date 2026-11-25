@@ -76,8 +76,16 @@ install -o "$USER_NAME" -m 0644 "$repo/tests/requirements.txt" "$HOME_DIR/requir
 as_runner "$VENV/bin/pip install -q -r requirements.txt"
 if [ ! -d "$CUT_DIR/.git" ]; then
     [ -n "$SPOC_SOFTWARE_SRC" ] || { echo "set SPOC_SOFTWARE_SRC to a local SPOC_Software checkout holding branch Core-CUT" >&2; exit 1; }
-    git clone -q --branch Core-CUT --single-branch "$SPOC_SOFTWARE_SRC" "$CUT_DIR"
-    git -C "$CUT_DIR" remote remove origin
+    # Core-CUT may be a local branch or only origin/Core-CUT there; take whichever exists.
+    src_git=(git -c safe.directory='*' -C "$SPOC_SOFTWARE_SRC")
+    ref=
+    for r in refs/heads/Core-CUT refs/remotes/origin/Core-CUT; do
+        if "${src_git[@]}" rev-parse --verify -q "$r" >/dev/null; then ref=$r; break; fi
+    done
+    [ -n "$ref" ] || { echo "no Core-CUT or origin/Core-CUT in $SPOC_SOFTWARE_SRC (git fetch origin there first)" >&2; exit 1; }
+    git init -q "$CUT_DIR"
+    git -c safe.directory='*' -C "$CUT_DIR" fetch -q "$SPOC_SOFTWARE_SRC" "$ref"
+    git -C "$CUT_DIR" checkout -q -B Core-CUT FETCH_HEAD
     chown -R "$USER_NAME:$USER_NAME" "$CUT_DIR"
 fi
 echo "Core-CUT $(git -C "$CUT_DIR" rev-parse --short HEAD)"
