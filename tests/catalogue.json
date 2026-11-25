@@ -311,6 +311,84 @@
    "id": "L0-CTK-06",
    "title": "Period actually run after an out-of-range period was accepted",
    "criterion": "INFO, reported only when an out-of-range period is accepted (before Core#174's fix)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-00",
+   "title": "DAC test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_dac exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-01",
+   "title": "DAC test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e DAC -t upload` exits 0"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-02",
+   "title": "DAC report struct read over SWD",
+   "criterion": "magic 0x44414331, layout 1, within 30 s of the upload"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-03",
+   "title": "Analog bus DAC (Core#168): output register follows setAnalogCommValue()",
+   "criterion": "DAC2 DOR1 reads the commanded level over SWD, at 512, 1024, 2048, 3072, 3584 (.a-.e)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-04",
+   "title": "Analog bus DAC (Core#168): PA6 voltage at each level",
+   "criterion": "median of 5 VAVG on CH1 = n × 3.3 V / 4096 ±60 mV, at 512, 1024, 2048, 3072, 3584 (.a-.e)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-05",
+   "title": "PA6 voltage at level 0",
+   "criterion": "INFO: below the output buffer's linear range"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
+   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-DAC-06",
+   "title": "DAC full scale and offset",
+   "criterion": "INFO: least-squares fit of PA6 voltage against level"
   }
  ]
 }
