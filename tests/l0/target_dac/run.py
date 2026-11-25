@@ -25,7 +25,13 @@ LAYOUT = 1
 FIELDS = ['magic', 'layout', 'cmd', 'cmd_seq', 'ack_seq', 'applied', 'ticks']
 LEVELS = [512, 1024, 2048, 3072, 3584]
 VREF = 2.048  # VREFBUF: the DAC and the ADCs share it (DacHAL.cpp VREF)
-TOL_V = 0.060  # scope DC accuracy at 0.5 V/div plus the buffered DAC's offset
+# Scope DC gain through the x10 probe (about +3 % measured on the bench, 2026-11-26) plus the buffered DAC's offset:
+# 30 mV + 3 % of the expected voltage.
+TOL_ABS_V, TOL_REL = 0.030, 0.03
+
+
+def tol(v):
+    return TOL_ABS_V + TOL_REL * v
 DAC2_DOR1 = 0x50000C2C  # STM32G474 DAC2 base 0x50000C00, DOR1 offset 0x2C
 CUT_PIN = 'PA6'
 BOOT_TIMEOUT_S = 30.0
@@ -39,7 +45,7 @@ def blocked(reason):
         th.line(cid, 'BLOCKED', what, '-', reason)
     for i, n in enumerate(LEVELS):
         th.line(f'L0-DAC-03.{SUB[i]}', 'BLOCKED', f'DAC2 output register at level {n}', f'{n}', reason)
-        th.line(f'L0-DAC-04.{SUB[i]}', 'BLOCKED', f'PA6 mean voltage at level {n}', f'{n * VREF / 4096:.3f} V ±{TOL_V * 1000:.0f} mV', reason)
+        th.line(f'L0-DAC-04.{SUB[i]}', 'BLOCKED', f'PA6 mean voltage at level {n}', f'{n * VREF / 4096:.3f} V ±{tol(n * VREF / 4096) * 1000:.0f} mV', reason)
     return 0
 
 
@@ -132,9 +138,9 @@ def levels(addr, rep, scope, mux):
         ok_dor = got is not None and dor == n
         th.line(f'L0-DAC-03.{SUB[i]}', th.judge(ok_dor), f'DAC2 output register at level {n}', f'{n}',
                 'no acknowledgement from the firmware' if got is None else f'DOR {dor}')
-        ok_v = v is not None and abs(v - expected) <= TOL_V
+        ok_v = v is not None and abs(v - expected) <= tol(expected)
         th.line(f'L0-DAC-04.{SUB[i]}', th.judge(ok_v), f'PA6 mean voltage at level {n}',
-                f'{expected:.3f} V ±{TOL_V * 1000:.0f} mV',
+                f'{expected:.3f} V ±{tol(expected) * 1000:.0f} mV',
                 'invalid' if v is None else f'{v:.3f} V ({(v - expected) * 1000:+.0f} mV; {len(vals)} readings, '
                                             f'spread {(max(vals) - min(vals)) * 1000:.0f} mV)')
         failed |= not (ok_dor and ok_v)
