@@ -19,6 +19,8 @@ tests/run_all.sh --l0            # every tests/l0/*/run.sh; on-target tests repo
 tests/run_all.sh --l0 --target   # also the on-target tests: REFLASHES the Spin on the ST-Link
 tests/run_all.sh                 # L0, then tests/l1/run.sh when there is one
 bash tests/common/target_preflight.sh   # what on-target tests need, and how to fix what is missing
+bash tests/common/spoc_preflight.sh     # what the SPOC bench needs (CUT, MUX, MHO984)
+bash tests/l0/spoc_cal/run.sh --run     # one SPOC test as a campaign of its own
 ```
 
 Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test script, `record.md` (verdicts), `report.html` (the review page) and updates `tests/out/control-center.html`. The runner exits 1 on any FAIL, or when no criterion was reported.
@@ -34,6 +36,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`firmware/`](firmware/) | Test firmware environments ([`pio_tests.ini`](firmware/pio_tests.ini)) and their app folders, built with `OWNTECH_APP_DIR` |
 | [`l0/framework_selftest/`](l0/framework_selftest/README.md) | L0-FWK: the framework checks itself, without hardware |
 | [`l0/target_smoke/`](l0/target_smoke/README.md) | L0-TGT: build → flash → SWD read on a Spin through an ST-Link |
+| [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`catalogue.json`](catalogue.json) | Every test, defined once |
 | [`requirements.txt`](requirements.txt) | Python packages of the review page |
 | `out/` | Campaigns and `control-center.html` (git-ignored) |
