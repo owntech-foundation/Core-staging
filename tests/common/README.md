@@ -11,6 +11,8 @@ Shared code for every test. Nothing here is compiled into the firmware.
 | [`vendor/`](vendor/) | uPlot 1.6.32 (MIT, `uPlot-LICENSE`), inlined into the review pages so they work offline |
 | [`catalogue.py`](catalogue.py) | Loads and checks [`../catalogue.json`](../catalogue.json) |
 | [`control_center.py`](control_center.py) | Writes `tests/out/control-center.html`: where the validation stands, one tab per stage |
+| [`target_harness.py`](target_harness.py) | On-target tests: build and flash a `tests/firmware` env over the ST-Link (then `tools/restore_board_lines.py`), find a symbol, read and write RAM over SWD without halting, command/acknowledge protocol, result lines |
+| [`target_preflight.sh`](target_preflight.sh) | What on-target tests need (PlatformIO, OpenOCD, ST-Link, USB access, MCUboot), one line each, with the fix; `--install` runs the fixes that need no sudo |
 
 ## check.h
 

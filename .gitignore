@@ -8,3 +8,4 @@ src/Data_records/*
 # Test campaigns and the control center stay local
 tests/out/
 .venv/
+__pycache__/
