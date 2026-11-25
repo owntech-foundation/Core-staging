@@ -135,6 +135,84 @@ __STATIC_INLINE void _data_dispatch_swap_buffers(uint8_t adc_index,
  * Public API
  */
 
+/**
+ * Allocates the DMA buffer and the per-channel tables and double buffers of
+ * one ADC. @return false when any allocation failed (nothing is released:
+ * call _data_dispatch_release()).
+ */
+static bool _data_dispatch_allocate(uint8_t adc_index, size_t dma_buffer_size)
+{
+	uint8_t channels = enabled_channels_count[adc_index];
+
+	dma_main_buffers[adc_index] =
+			(uint16_t*)k_malloc(dma_buffer_size * sizeof(uint16_t));
+	adc_channel_buffers[adc_index] =
+			(uint16_t***)k_calloc(channels, sizeof(uint16_t**));
+	buffers_data_count[adc_index] =
+			(uint32_t*)k_calloc(channels, sizeof(uint32_t));
+	current_buffer[adc_index] =
+			(uint8_t*)k_calloc(channels, sizeof(uint8_t));
+	peek_memory[adc_index] =
+			(uint16_t*)k_calloc(channels, sizeof(uint16_t));
+
+	if ( (dma_main_buffers[adc_index] == nullptr)    ||
+		 (adc_channel_buffers[adc_index] == nullptr) ||
+		 (buffers_data_count[adc_index] == nullptr)  ||
+		 (current_buffer[adc_index] == nullptr)      ||
+		 (peek_memory[adc_index] == nullptr) )
+	{
+		return false;
+	}
+
+	for (int channel_index = 0 ; channel_index < channels ; channel_index++)
+	{
+		/* Prepare double buffer */
+		uint16_t** pair = (uint16_t**)k_calloc(2, sizeof(uint16_t*));
+		adc_channel_buffers[adc_index][channel_index] = pair;
+		if (pair == nullptr)
+			return false;
+
+		pair[0] = (uint16_t*)k_malloc(sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE);
+		pair[1] = (uint16_t*)k_malloc(sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE);
+		if ( (pair[0] == nullptr) || (pair[1] == nullptr) )
+			return false;
+
+		peek_memory[adc_index][channel_index] = PEEK_NO_VALUE;
+	}
+
+	return true;
+}
+
+/** Frees whatever _data_dispatch_allocate() got for one ADC. */
+static void _data_dispatch_release(uint8_t adc_index)
+{
+	if (adc_channel_buffers[adc_index] != nullptr)
+	{
+		for (int channel_index = 0 ;
+			 channel_index < enabled_channels_count[adc_index] ;
+			 channel_index++)
+		{
+			uint16_t** pair = adc_channel_buffers[adc_index][channel_index];
+			if (pair != nullptr)
+			{
+				k_free(pair[0]);
+				k_free(pair[1]);
+				k_free(pair);
+			}
+		}
+	}
+	k_free(adc_channel_buffers[adc_index]);
+	k_free(buffers_data_count[adc_index]);
+	k_free(current_buffer[adc_index]);
+	k_free(peek_memory[adc_index]);
+	k_free(dma_main_buffers[adc_index]);
+	adc_channel_buffers[adc_index] = nullptr;
+	buffers_data_count[adc_index]  = nullptr;
+	current_buffer[adc_index]      = nullptr;
+	peek_memory[adc_index]         = nullptr;
+	dma_main_buffers[adc_index]    = nullptr;
+}
+
 void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 {
 	/* Store dispatch method */
@@ -212,8 +290,21 @@ void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 			}
 
 			dma_buffer_sizes[adc_index] = dma_buffer_size;
-			dma_main_buffers[adc_index] =
-					(uint16_t*)k_malloc(dma_buffer_size * sizeof(uint16_t));
+
+			/* Allocate everything this ADC needs before starting its DMA:
+			 * with a long critical task the DMA buffer can exceed the heap
+			 * (Core#175), and an unchecked NULL buffer faults the board. */
+			if (_data_dispatch_allocate(adc_index, dma_buffer_size) == false)
+			{
+				printk("data: ADC%u: no memory for a %u-sample DMA buffer "
+					   "and its channel buffers; its values are not "
+					   "acquired (shorten the critical task period, or "
+					   "enlarge CONFIG_HEAP_MEM_POOL_SIZE)\n",
+					   (unsigned)adc_num, (unsigned)dma_buffer_size);
+				_data_dispatch_release(adc_index);
+				enabled_channels_count[adc_index] = 0;
+				continue;
+			}
 
 			if (dispatch_type == interrupt)
 			{
@@ -232,53 +323,6 @@ void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 										  disable_interrupts,
 										  dma_main_buffers[adc_index],
 										  dma_buffer_size);
-
-			/* Prepare arrays for each channel */
-			adc_channel_buffers[adc_index] =
-					(uint16_t***)k_malloc(
-						enabled_channels_count[adc_index] * sizeof(uint16_t**)
-					);
-
-			buffers_data_count[adc_index] =
-					(uint32_t*)k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint32_t)
-					);
-
-			current_buffer[adc_index]     =
-					(uint8_t*) k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint8_t)
-					);
-
-			peek_memory[adc_index]        =
-					(uint16_t*)k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint16_t)
-					);
-
-			for (int channel_index = 0 ;
-				 channel_index < enabled_channels_count[adc_index] ;
-				 channel_index++)
-			{
-				/* Prepare double buffer */
-				adc_channel_buffers[adc_index][channel_index] =
-					(uint16_t**)k_malloc(
-									sizeof(uint16_t*) * 2
-								);
-
-				adc_channel_buffers[adc_index][channel_index][0] =
-					(uint16_t*)k_malloc(
-									sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE
-							   );
-
-				adc_channel_buffers[adc_index][channel_index][1] =
-					(uint16_t*)k_malloc(
-									sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE
-							   );
-
-				peek_memory[adc_index][channel_index] = PEEK_NO_VALUE;
-			}
 		}
 	}
 }
@@ -391,6 +435,9 @@ uint16_t* data_dispatch_get_acquired_values(uint8_t adc_number,
 
 	/* Get and check data count */
 	uint8_t channel_index = channel_rank-1;
+	if (channel_index >= enabled_channels_count[adc_index])
+		return nullptr; /* not enabled, or its ADC is left out (no memory) */
+
 	uint32_t current_count =
 				_data_dispatch_get_count(adc_index, channel_index);
 
@@ -419,7 +466,8 @@ uint16_t data_dispatch_peek_acquired_value(uint8_t adc_number,
 {
 	uint8_t adc_index = adc_number-1;
 	uint8_t channel_index = channel_rank-1;
-	if (adc_index < ADC_COUNT)
+	if ( (adc_index < ADC_COUNT) &&
+		 (channel_index < enabled_channels_count[adc_index]) )
 	{
 		/* Get info on buffer */
 		uint16_t* active_buffer =
@@ -440,6 +488,7 @@ uint16_t data_dispatch_peek_acquired_value(uint8_t adc_number,
 	}
 	else
 	{
-		return 0;
+		/* Not enabled, or its ADC is left out (no memory): no value. */
+		return PEEK_NO_VALUE;
 	}
 }
