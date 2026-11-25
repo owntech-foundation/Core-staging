@@ -1,0 +1,52 @@
+# tests/common
+
+Shared code for every test. Nothing here is compiled into the firmware.
+
+| File | Role |
+|---|---|
+| [`check.h`](check.h) | `tc::Criterion`, `tc::info`, `tc::blocked`, `tc::finish`: per-criterion reporting |
+| [`make_record.py`](make_record.py) | Turns result lines into `record.md` |
+| [`review_report.py`](review_report.py) | Writes a campaign's or study's `report.html` |
+| [`interactive_plot.py`](interactive_plot.py) | Interactive review figures: zoom in time, read values (uPlot) |
+| [`vendor/`](vendor/) | uPlot 1.6.32 (MIT, `uPlot-LICENSE`), inlined into the review pages so they work offline |
+| [`catalogue.py`](catalogue.py) | Loads and checks [`../catalogue.json`](../catalogue.json) |
+| [`control_center.py`](control_center.py) | Writes `tests/out/control-center.html`: where the validation stands, one tab per stage |
+
+## check.h
+
+A `tc::Criterion` collects observations and prints **one** result line when it goes out of scope. A failing observation does not stop the test, so every criterion gets a verdict.
+
+```cpp
+{
+    tc::Criterion c("L0-ABC-02.a", "Leg 1 alone below and at its current limit");
+    c.check("leg 2 off", !leg2_enabled);                    // boolean
+    c.near("current ref", i_ref, 2.0, 1e-5);                // |measured - expected| <= tol
+    c.range("duty", duty, 0.0, 0.95);                      // lo <= measured <= hi
+}
+tc::info("L0-ABC-03", "PLL lock time", t, "s");            // INFO: no limit stated
+tc::blocked("L1-ABC-01", "IDLE on a healthy grid", "plant model missing");
+return tc::finish();                                       // 1 if any criterion failed
+```
+
+Result line format, one per criterion:
+
+```
+@@<TAB>id<TAB>verdict<TAB>description<TAB>limit<TAB>measured
+```
+
+| Verdict | Produced by |
+|---|---|
+| `PASS` | `Criterion` with at least one observation and none failed |
+| `FAIL` | `Criterion` with a failed observation, or with no observation at all |
+| `INFO` | `tc::info` |
+| `BLOCKED` | `tc::blocked` |
+
+## make_record.py
+
+```bash
+python3 tests/common/make_record.py --out DIR --levels L0,L1 LOG [LOG ...]
+```
+
+Reads every `@@` line from the logs and, when the branch has one, the findings register of `docs/testing/test-procedure.md`, and writes `DIR/record.md`: front-matter (commits, toolchain, counts, verdict), setup table, verdict chart, test-case table, results table (`BLOCKED` first, then `FAIL`), raw-data list and, on failure, the follow-up reminder. A `FAIL` on a criterion listed in an open finding is marked *known* with its issue, any other `FAIL` **new**; an open finding whose criteria all pass is listed under `findings_to_close`. Exit code 1 if any criterion is `FAIL` (known or new) or none was reported. Standard library only.
+
+Application branches may set `SINGLE_PHASE_INVERTER_DIR` to the library checkout under test; the record then stamps its commit.

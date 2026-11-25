@@ -5,3 +5,6 @@
 .vscode/settings.json
 old
 src/Data_records/*
+# Test campaigns and the control center stay local
+tests/out/
+.venv/
