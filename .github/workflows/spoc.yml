@@ -1,7 +1,7 @@
 # SPOC bench campaign for a pull request, on the self-hosted runner that drives the bench.
 #
 # Only this file, on main, may reach the bench: the runner's pre-job hook (tests/runner/job_started.sh) refuses
-# any other workflow. A maintainer reads the PR's diff (firmware, but also build scripts, tests/ and Python: building
+# any other workflow. The campaign runs on main with the PR's head SHA merged onto it. A maintainer reads the PR's diff (firmware, but also build scripts, tests/ and Python: building
 # is executing), then either adds the label `spoc-run` or runs
 #   gh workflow run spoc.yml -R owntech-foundation/Core-staging -f pr=<N> -f sha=<reviewed head SHA>
 # The job then waits on the environment `spoc-bench` until Luiz approves it, and runs the exact SHA reviewed.
@@ -59,10 +59,13 @@ jobs:
           echo "pr=$PR" >> "$GITHUB_OUTPUT"
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Check out the reviewed SHA
+      # The campaign runs on what merging would give: main plus the reviewed SHA. A PR branched from Core (no
+      # tests/) still gets the framework, and a PR's own tests come with it.
+      - name: Check out main
         uses: actions/checkout@v7
         with:
-          ref: ${{ env.SHA }}
+          ref: main
+          fetch-depth: 0
           persist-credentials: false
 
       # The bench restore always comes from main, so a PR cannot change how the bench is put back to rest.
@@ -80,6 +83,21 @@ jobs:
           ln -sfn "$SPOC_VENV" .bench-main/.venv
           git config user.name "SPOC bench runner (approved run by $ACTOR)"
           echo "/.bench-main/" >> .git/info/exclude
+
+      - name: Merge the reviewed SHA onto main
+        run: |
+          base=$(git rev-parse HEAD)
+          git fetch -q --no-tags origin "$SHA"
+          if ! git -c user.email=spoc-runner@localhost merge -q --no-ff --no-edit "$SHA"; then
+            git merge --abort
+            echo "::error::PR #$PR ($SHA) does not merge cleanly onto main ($base): rebase it on main"
+            exit 1
+          fi
+          {
+            echo "Campaign on PR #$PR head \`${SHA:0:7}\` merged onto main \`${base:0:7}\`"
+            echo "(merge commit \`$(git rev-parse --short=7 HEAD)\`, local to this run)."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Bench to rest (CUT on Core-CUT)
         run: bash .bench-main/tests/common/bench_restore.sh

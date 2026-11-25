@@ -21,6 +21,13 @@ test campaign on the exact commit of a pull request that a maintainer has review
 Campaigns queue: one runs at a time and none is cancelled. If the computer is asleep or the service is stopped,
 the job waits.
 
+## What is tested
+
+The campaign runs on `main` with the PR's reviewed head SHA merged onto it, which is the code that merging would
+give. A PR branched from Core, which has no `tests/`, therefore still runs the framework, and a PR's own new tests
+run with it. A PR that does not merge cleanly onto `main` fails at the merge step: rebase it. The record names the
+local merge commit, and the run summary gives the PR head and the `main` commit it was merged onto.
+
 ## What a campaign does to the bench
 
 - **Before and after**: [`tests/common/bench_restore.sh`](../common/bench_restore.sh), taken from `main`, uploads
