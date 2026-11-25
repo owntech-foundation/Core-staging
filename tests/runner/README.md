@@ -60,8 +60,9 @@ sudo RUNNER_TOKEN=$(gh api -X POST repos/owntech-foundation/Core-staging/actions
 ```
 
 The runner's files (PlatformIO toolchains, Core-CUT, job builds) take over 12 GB. They live in `/home/spoc-runner`
-(`SPOC_RUNNER_DATA`), with `/var/lib/spoc-runner` a symlink to it, and the script refuses to start with less than
-15 GB free there. On a laptop with a small root partition, the first install put them on `/` and filled it.
+(`SPOC_RUNNER_DATA`), bind-mounted at `/var/lib/spoc-runner` (a line in `/etc/fstab`), and the script refuses to start
+with less than 15 GB free there. **Never a symlink**: PlatformIO reaches Zephyr through the path it is given while
+CMake resolves the real one, and the Core-CUT build then fails with `offsets.c.o not found`. On a laptop with a small root partition, the first install put them on `/` and filled it.
 
 Variables go after `sudo`, because sudo drops the ones set before it. The registration token is valid for one hour.
 The script re-applies the udev rules to the bench's USB devices only. Never run a bare `udevadm trigger`: it
