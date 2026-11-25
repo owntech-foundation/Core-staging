@@ -1,0 +1,14 @@
+# SPOC bench devices for the runner user (tests/runner/README.md). Group access instead of world access, and
+# stable names keyed on serial numbers. Install: sudo bash tests/runner/install.sh (or copy to /etc/udev/rules.d/,
+# then sudo udevadm control --reload && sudo udevadm trigger, and replug).
+# Serial numbers of the bench as of 2026-11-25; edit them when a board or probe is swapped.
+
+# Rigol MHO984 over usbtmc (its N changes on replug): /dev/spoc-scope.
+SUBSYSTEM=="usbmisc", KERNEL=="usbtmc[0-9]*", ATTRS{idVendor}=="1ab1", ATTRS{idProduct}=="0452", ATTRS{serial}=="MHO9B280300263", MODE="0660", GROUP="plugdev", SYMLINK+="spoc-scope"
+
+# ST-Link V3 on the CUT's SWD header (OpenOCD opens it through libusb).
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374f", ATTRS{serial}=="001E00234D4B500D20373831", MODE="0660", GROUP="plugdev", SYMLINK+="spoc-stlink"
+
+# Spins: ThingSet shell is CDC ACM interface 2. CUT and MUX by serial.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2fe3", ATTRS{idProduct}=="0100", ATTRS{serial}=="5843500300470041", ENV{ID_USB_INTERFACE_NUM}=="02", MODE="0660", GROUP="dialout", SYMLINK+="spoc-cut"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="2fe3", ATTRS{idProduct}=="0100", ATTRS{serial}=="5843500300470031", ENV{ID_USB_INTERFACE_NUM}=="02", MODE="0660", GROUP="dialout", SYMLINK+="spoc-mux"

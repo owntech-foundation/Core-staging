@@ -8,5 +8,6 @@
 ## On target only with tests/run_all.sh --l0 --target (CORE_TARGET=1), or
 ## `run.sh --run`: REFLASHES the Spin on the ST-Link. Otherwise every criterion
 ## reports BLOCKED.
+## @flashes-cut
 set -uo pipefail
 exec python3 "$(dirname "$0")/run.py" "$@"
