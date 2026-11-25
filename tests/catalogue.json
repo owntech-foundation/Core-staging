@@ -1,0 +1,60 @@
+{
+ "_doc": "Every test of the board-agnostic validation, defined once (tests/common/catalogue.py). Shield-specific tests live on the application branches.",
+ "version": "framework-1",
+ "tabs": [
+  {
+   "id": "framework",
+   "title": "Framework",
+   "question": "Does the test framework itself work: runner, record, review page and control center, without hardware?",
+   "notes": [
+    "Run `tests/run_all.sh --l0`. The review page needs `.venv`: `python3 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt`."
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "L0-FWK-00",
+   "tab": "framework",
+   "level": "L0",
+   "title": "Self-test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when the self-test script exits non-zero without reporting a FAIL itself.",
+   "source": "campaign runner (`tests/run_all.sh`)",
+   "status": "implemented",
+   "status_note": "Infrastructure fallback",
+   "reports_only_failures": true
+  },
+  {
+   "id": "L0-FWK-01",
+   "tab": "framework",
+   "level": "L0",
+   "title": "The catalogue loads and is consistent",
+   "criterion": "`tests/common/catalogue.py` exits 0",
+   "conditions": "Host only",
+   "source": "`tests/l0/framework_selftest/run.sh`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0"
+  },
+  {
+   "id": "L0-FWK-02",
+   "tab": "framework",
+   "level": "L0",
+   "title": "Host Python version",
+   "criterion": "INFO only",
+   "conditions": "Host only",
+   "source": "`tests/l0/framework_selftest/run.sh`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0"
+  },
+  {
+   "id": "L0-FWK-03",
+   "tab": "framework",
+   "level": "L0",
+   "title": "The review page can be written",
+   "criterion": "numpy and matplotlib import from `.venv`; BLOCKED when `.venv` is missing",
+   "conditions": "Host only",
+   "source": "`tests/l0/framework_selftest/run.sh`, `tests/requirements.txt`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0"
+  }
+ ]
+}

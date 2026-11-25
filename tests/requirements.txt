@@ -1,0 +1,4 @@
+# Review page (tests/common/review_report.py, interactive_plot.py).
+# python3 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt
+numpy
+matplotlib
