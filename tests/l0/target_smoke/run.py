@@ -5,6 +5,7 @@
 ## @file run.py
 ## @brief L0-TGT: env SMOKE is built and flashed over the ST-Link, then its report struct is read over SWD
 ##        without halting the CPU (tests/firmware/smoke). Proves the on-target plumbing every on-target test uses.
+##        Last, env STLink (the users' ST-Link upload) is built and uploaded: it leaves Core's default app on the CUT.
 import os
 import sys
 import tempfile
@@ -76,7 +77,16 @@ def main():
     result(2, th.judge(ok), 'no SWD read' if ticks is None else f'{ticks} ticks, uptime +{ms} ms')
     idc = th.idcode()
     th.line('L0-TGT-04', 'INFO', 'MCU DBGMCU_IDCODE', '-', f'{idc:#010x}' if idc is not None else 'not read')
-    return 0 if ok else 1
+    # The users' ST-Link upload (env STLink, upload_protocol = stlink): the platform picks OpenOCD's transport,
+    # unlike env SMOKE's own upload_command, so it breaks on its own when the OpenOCD package changes.
+    stlink_log = os.path.join(out, 'target_smoke_stlink_upload.log')
+    rc = th.flash('STLink', stlink_log)
+    with open(stlink_log, errors='replace') as f:
+        hla = "doesn't support 'hla_swd'" in f.read()
+    th.line('L0-TGT-05', th.judge(rc == 0), 'env STLink (upload_protocol = stlink) builds and uploads over the ST-Link',
+            'pio upload exit 0', f'exit {rc}' + (", OpenOCD rejects 'hla_swd'" if hla else '') +
+            f', see {os.path.basename(stlink_log)}')
+    return 0 if ok and rc == 0 else 1
 
 
 if __name__ == '__main__':
