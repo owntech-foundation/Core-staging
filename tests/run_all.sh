@@ -48,6 +48,7 @@ object_code() {
     case "$1" in
         framework_selftest) echo FWK-00 ;;
         target_smoke) echo TGT-00 ;;
+        spoc_cal) echo CAL-01 ;;
         l1) echo INT-00 ;;
         *) echo "$1" | tr '[:lower:]' '[:upper:]' ;;
     esac
