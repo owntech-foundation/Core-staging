@@ -14,7 +14,8 @@
  *    its peek() must follow. Every late_every runs the task busy-waits late_us, so the next dispatch is late.
  *    The background task spins on a counter: what the dispatch leaves of the CPU.
  *  - mode 2, heap: pins 24 (ADC1) and 34 (ADC2), a 5 ms TIM6 task: DMA buffers of 1000+ samples per ADC, more
- *    than the 4 KB heap holds. The board must keep running.
+ *    than the 4 KB heap holds. The board must keep running. TIM6 is a zero-latency interrupt: its task makes no
+ *    kernel call, and run_ms is stamped by the background task.
  */
 #include <stdint.h>
 #include <string.h>
@@ -86,10 +87,11 @@ void task_dispatch()
 	}
 }
 
+/* A TIM6 critical task runs in a zero-latency interrupt: no kernel call here (k_uptime_get_32() races the
+ * kernel's timeout list and faults the board). The background task stamps the uptime instead. */
 void task_heap()
 {
 	g_add_report.runs = g_add_report.runs + 1U;
-	g_add_report.run_ms = k_uptime_get_32();
 	g_add_report.peek34 = float_bits(spin.data.peekLatestValue(34));
 	g_add_report.peek24 = float_bits(spin.data.peekLatestValue(24));
 }
@@ -133,6 +135,9 @@ void loop_background_task()
 		g_add_report.bg_count = g_add_report.bg_count + 1U;
 	}
 	g_add_report.bg_ms = k_uptime_get_32();
+	if (g_add_report.req_mode == 2U) {
+		g_add_report.run_ms = g_add_report.bg_ms; /* with runs, read live: one run of error in hundreds */
+	}
 	task.suspendBackgroundMs(1);
 }
 
