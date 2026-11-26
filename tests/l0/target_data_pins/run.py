@@ -82,6 +82,8 @@ def sequence(adc):
     w = th.read_words(ADC_BASE[adc] + SQR1, 4)
     if w is None:
         return None
+    if w == [0, 0, 0, 0]:
+        return []  # reset value: never configured nor triggered (the firmware skips ADCs without channels)
     length = (w[0] & 0xF) + 1
     fields = [(w[0] >> s) & 0x1F for s in (6, 12, 18, 24)]
     for reg in (w[1], w[2]):
