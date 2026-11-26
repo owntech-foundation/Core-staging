@@ -22,6 +22,32 @@
 
 </div>
 
+## A first look
+
+A minimal program drives one leg of a Twist shield as a buck converter, reads a sensor and updates the duty cycle in a critical task.
+
+!!! example
+    ```cpp
+    #include "SpinAPI.h"
+    #include "ShieldAPI.h"
+    #include "TaskAPI.h"
+
+    void loop_critical_task()
+    {
+        float32_t v_low = shield.sensors.getLatestValue(V1_LOW); // Latest measure, in V
+        shield.power.setDutyCycle(LEG1, 0.5);                     // Update the duty cycle
+    }
+
+    void setup_routine()
+    {
+        shield.power.initBuck(LEG1);              // LEG1 as a buck converter
+        shield.sensors.enableDefaultSensors();    // Enable all the shield sensors
+        task.createCritical(loop_critical_task, 100); // 100 µs control period
+        shield.power.start(LEG1);
+        task.startCritical();                     // Also starts the data acquisition
+    }
+    ```
+
 ## Browse the documentation
 
 <div class="grid cards" markdown>

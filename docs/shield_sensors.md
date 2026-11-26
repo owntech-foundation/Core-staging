@@ -14,10 +14,17 @@ spin.data.enableAcquisition(29);
 ```
 However, using Shield sensor API, you just have to write:
 ```
-shield.sensors.enableAcquisition(V1_LOW);
+shield.sensors.enableSensor(V1_LOW, ADC_1);
 ```
 
-Everything else should be used similarly as Data API, just replace ``spin.data`` by ``shield.sensors`` in your code, then use the sensor name instead of the pin number as a parameter for the functions.
+Note that ``enableSensor()`` takes the ADC explicitly: each sensor of the shield can be read by one or more ADCs (``V1_LOW`` on Twist can use ``ADC_1`` or ``ADC_2``).
+
+Everything else should be used similarly as Data API, just replace ``spin.data`` by ``shield.sensors`` in your code, then use the sensor name instead of the pin number as a parameter for the functions:
+```
+shield.sensors.getLatestValue(V1_LOW);
+shield.sensors.setConversionParametersLinear(V1_LOW, gain, offset);
+```
+A few functions have a different name than their Data API counterpart: ``convertRawValue()``, ``storeParametersInMemory()`` and ``retrieveParametersFromMemory()``.
 
 ## Auto-configuration of the API
 
