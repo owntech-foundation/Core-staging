@@ -321,19 +321,8 @@ static void switch_to_dispatch()
 	task.stopCritical();
 	configure_acquisition();
 	calls_runs = 0U;
-	task.startCritical(true);
-	/* getValues() allocates its conversion buffer (new) on its first call that has values. A heap call takes a
-	 * kernel lock, which faults in the zero-latency critical task with interrupts masked (HardFault, found by this
-	 * test on 2026-11-26). Make that first call here, from the background, once data flows; the timed calls then
-	 * measure the steady state. The state stays TIM_SWITCH meanwhile, so the critical task does nothing. */
-	for (int i = 0; i < 200; i++) {
-		k_msleep(1);
-		uint32_t n = 0U;
-		if (spin.data.getValues(PIN_FETCHED, n) != nullptr) {
-			break;
-		}
-	}
 	g_tim_report.state = TIM_CALLS;
+	task.startCritical(true);
 }
 
 void loop_background_task()
