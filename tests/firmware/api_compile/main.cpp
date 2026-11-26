@@ -215,9 +215,8 @@ static void shield_calls()
 	shield.power.setFrequency(200000);
 	g_sink = shield.power.getFrequency();
 	g_sink = shield.power.getFrequencyMin();
-#if defined(CONFIG_SHIELD_TWIST) || defined(APIC_WITH_KNOWN_FAILURES)
-	/* KNOWN FAILURE (known_failures.txt): declared in Power.h for every shield, defined in Power.cpp only for the
-	 * Twist, so the link fails on any other shield. Remove the guard once fixed. */
+#ifdef CONFIG_SHIELD_TWIST
+	/* Twist only: Power.h declares the capacitor calls under CONFIG_SHIELD_TWIST. */
 	shield.power.connectCapacitor(ALL);
 	shield.power.disconnectCapacitor(ALL);
 #endif
