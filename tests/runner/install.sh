@@ -111,6 +111,14 @@ if [ ! -d "$CUT_DIR/.git" ]; then
     git -C "$CUT_DIR" checkout -q -B Core-CUT FETCH_HEAD
     chown -R "$USER_NAME:$USER_NAME" "$CUT_DIR"
 fi
+# Core-CUT stays on ststm32@19.0.0 (hla_swd) with tool-openocd unpinned, and PlatformIO takes the highest installed
+# version for an unpinned package: once a Core build installs 3.1200.7 (ststm32@20.0.0), the bench restore breaks.
+# Pin it in the bench copy until SPOC_Software pins it itself.
+cut_ini=$CUT_DIR/owntech/pio_extra.ini
+if grep -qE '^\s*tool-openocd\s*$' "$cut_ini"; then
+    sed -i -E 's/^(\s*)tool-openocd\s*$/\1platformio\/tool-openocd@3.1200.0/' "$cut_ini"
+    echo "Core-CUT: tool-openocd pinned to 3.1200.0 in the bench copy"
+fi
 echo "Core-CUT $(git -C "$CUT_DIR" rev-parse --short HEAD)"
 # First build of Core-CUT fetches the toolchains; later bench restores run offline.
 as_runner "$HOME_DIR/.platformio/penv/bin/pio run -d $CUT_DIR -e STLink"
