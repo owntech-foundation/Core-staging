@@ -126,8 +126,12 @@ public:
 	 */
 	void stop(leg_t leg);
 
+#ifdef CONFIG_SHIELD_TWIST
+	/* Twist only: the electrolytic capacitor switch exists on the Twist
+	 * shield alone, so these calls are not declared for other shields. */
+
 	/**
-	 * @brief Connect the electrolytic capacitor.
+	 * @brief Connect the electrolytic capacitor (Twist shield only).
 	 *
 	 * @param leg The selected leg for which the capacitor will be connected:
 	 * 		  `LEG1` to `ALL`
@@ -137,7 +141,7 @@ public:
 	void connectCapacitor(leg_t leg);
 
 	/**
-	 * @brief Disconnect the electrolytic capacitor.
+	 * @brief Disconnect the electrolytic capacitor (Twist shield only).
 	 *
 	 * @param leg The selected leg for which the capacitor will be disconnected:
 	 * 			  `LEG1` to `ALL`
@@ -145,6 +149,7 @@ public:
 	 * @warning This function can only be called AFTER initializing the `LEG`.
 	 */
 	void disconnectCapacitor(leg_t leg);
+#endif /* CONFIG_SHIELD_TWIST */
 
 	/**
 	 * @brief Turns the driver of the leg ON. This enables control over the
