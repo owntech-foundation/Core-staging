@@ -99,7 +99,7 @@ Non-critical tasks aren't synchronous, meaning they're not recurring at regular 
 
 !!! note
     1\. Create the background task and link it to the function to be called. [`task.createBackground(function)`](https://owntech-foundation.github.io/Documentation/core/docs/scheduling/#function-createbackground)
-    2\. Start the background function. [`task.startCritical()`](https://owntech-foundation.github.io/Documentation/core/docs/scheduling/#function-startbackground)
+    2\. Start the background function. [`task.startBackground(task_number)`](https://owntech-foundation.github.io/Documentation/core/docs/scheduling/#function-startbackground)
 
 !!! example
     === "Spawning a background task"
@@ -107,7 +107,8 @@ Non-critical tasks aren't synchronous, meaning they're not recurring at regular 
             void my_background_function(){
                 do_stuff();
             }
-            task.createBackground(my_background_function);
+            uint8_t task_number = task.createBackground(my_background_function);
+            task.startBackground(task_number);
         ```
         In that case `do_stuff()` will execute continuously each time the processor is not occupied by the critical task.
 
@@ -115,7 +116,7 @@ Non-critical tasks aren't synchronous, meaning they're not recurring at regular 
         ```
             void my_background_function(){
                 do_stuff();
-                suspendBackgroundUs(500);
+                task.suspendBackgroundUs(500);
             }
         ```
         In that case after executing `do_stuff();` the task will be suspended for 500us and resumed after. It creates a pseudo periodical task, runs every 500us + the time taken to execute `do_stuff()`.

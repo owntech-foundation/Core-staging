@@ -47,7 +47,7 @@ To indicate that the value of a pin should be acquired, the acquisition must be 
 
 Note that providing the ADC number is not required. For pins connected to multiples ADC, the ADC with the lowest number will be used if no ADC is specified. Specifying an ADC number that is not available on the pin will result in an error.
 
-By default, the acquisitions are software-triggered, which means that when your program will want to acquire a measure, you'll have to trigger the acquisition. Other means of triggering the measure exists, notably periodic acquisitions, see [detailed information](adc.md#synchronous-with-pwms). If you need to change the trigger source, this must be done at this point.
+By default, the acquisitions are software-triggered, which means that when your program will want to acquire a measure, you'll have to trigger the acquisition. Other means of triggering the measure exists, notably periodic acquisitions, see [detailed information](#synchronous-with-pwms). If you need to change the trigger source, this must be done at this point.
 
 At the end of all the hardware configuration (including other modules), the Data API must be started using the `start()` function. Note that in case you use an [uninterruptible task](task_introduction.md), you do not need to start the Data API manually, this will be done automatically when the uninterruptible task is started.
 
@@ -135,22 +135,24 @@ Each ADC unit can measure multiple analog signal. This works by defining an acqu
     This can be changed using [Discontinuous Mode](#continuous-discontinuous-sequence)
 
 !!! example
-    === "3 channels on ADC1"
+    === "3 pins on ADC1"
     ```c++
-    spin.adc.enableAcquisition(2, ADC_1)
-    spin.adc.enableAcquisition(3, ADC_1)
-    spin.adc.enableAcquisition(1, ADC_1)
+    spin.data.enableAcquisition(30, ADC_1);
+    spin.data.enableAcquisition(31, ADC_1);
+    spin.data.enableAcquisition(29, ADC_1);
     ```
-    In this example, for each trigger action, the ADC1 will measure channel 2, then channel 3, then channel 1.
+    In this example, for each trigger action, the ADC1 will measure pin 30, then pin 31, then pin 29.
 
-    === "Single channel"
-    ```spin.adc.enableChannel(1, ADC_1)```
+    === "Single pin"
+    ```c++
+    spin.data.enableAcquisition(29, ADC_1);
+    ```
 
-    In this example, for each trigger, the ADC1 will measure channel 1.
+    In this example, for each trigger, the ADC1 will measure pin 29.
 
 !!! note
-    The sequence order is given by the order in which the `spin.adc.enableChannel()` function is called.
-    E.g., in the above case, the acquisition order would be pin 2, then 3, then 1.
+    The sequence order is given by the order in which the `spin.data.enableAcquisition()` function is called.
+    E.g., in the above case, the acquisition order would be pin 30, then 31, then 29.
 
 ## Continuous / Discontinuous sequence
 
@@ -188,8 +190,8 @@ The data acquisition can be triggered by two sources:
 
     ```C++
     spin.data.configureTriggerSource(ADC_2, TRIG_SOFTWARE); // ADC 2 configured in software mode
-    sing.data.triggerAcquisition(ADC_2); // Send an adc trigger to ADC2 to start conversion
-    adc_value = data.getLatest(35); // Get the acquired data
+    spin.data.triggerAcquisition(ADC_2); // Send an adc trigger to ADC2 to start conversion
+    adc_value = spin.data.getLatestValue(35); // Get the acquired data
     ```
 
     !!! example
@@ -387,7 +389,7 @@ If you use Data API in one of these cases, the Data API must be started using th
 
 If you want specific ADC behavior (trigger sources, discontinuous mode, etc.), you will want to configure set these configurations before starting the API.
 
-After channels have been enabled, the conversion parameters can be set so that raw values can be automatically converted to the relevant unit. This is done using the `spin.data.setParameters()` function.
+After channels have been enabled, the conversion parameters can be set so that raw values can be automatically converted to the relevant unit. This is done using one of the `spin.data.setConversionParameters***()` functions: `setConversionParametersLinear()` or `setConversionParametersNtcThermistor()`.
 
 After channels have been enabled (and optionnally conversion parameters have been set), there are two ways of starting the API, depending on your use of other OwnTech APIs. If your code uses an [uninterruptible task](task_introduction.md), nothing more is required, the Data API will be started automatically when task is started. However, if you do not have an uninterruptible task in your code, you need to manually start the API by calling `spin.data.start()`.
 
@@ -425,9 +427,9 @@ After channels have been enabled (and optionnally conversion parameters have bee
         spin.pwm.setMode(PWMA, VOLTAGE_MODE);
         spin.pwm.initUnit(PWMA);
         spin.pwm.setDeadTime(PWMA, 200,200);
-        spin.pwm.setAdcTrigger(PWMA, ADCTRIG_1);
+        spin.pwm.setAdcTrigger(PWMA, ADC_1);
         spin.pwm.enableAdcTrigger(PWMA);
-        spin.pwm.setDutyCycle(0.5);
+        spin.pwm.setDutyCycle(PWMA, 0.5);
         spin.pwm.startDualOutput(PWMA);
 
         /* ADC initialization */
@@ -435,7 +437,7 @@ After channels have been enabled (and optionnally conversion parameters have bee
         spin.data.configureDiscontinuousMode(ADC_1, 1); // ADC 1 ; acquire 1 pin at each event
         spin.data.enableAcquisition(5, ADC_1); // Pin 5 using ADC 1
         spin.data.start();
-        float32_t adc_value = data.getLatestValue(5); // Pin 5
+        float32_t adc_value = spin.data.getLatestValue(5); // Pin 5
         ```
 
 
@@ -450,9 +452,9 @@ Getting the latest measured value to feed the control algorithm is super simple.
 !!! example
     === "Get latest value"
         ```
-        spin.data.getLatest(5)
+        float32_t value = spin.data.getLatestValue(5);
         ```
-        This will retrieve the latest sampled value of ADC 1 pin 5.
+        This will retrieve the latest sampled value of pin 5, converted with the conversion parameters set for this pin.
 
 ## Getting values with the right unit
 
@@ -461,7 +463,9 @@ DataAPI contains commodity functions to convert the raw binary measurement value
 !!! example
     === "Converting in volts"
         ```
-        spin.data.setParameters()
+        // Raw values range from 0 to 4096 for 0 V to 2.048 V:
+        // value = raw * gain + offset
+        spin.data.setConversionParametersLinear(5, 2.048 / 4096, 0);
         ```
 
 ## Get an array of values
@@ -469,9 +473,10 @@ DataAPI contains commodity functions to convert the raw binary measurement value
 DataAPI contains commodity function to retrieve an array of raw values that can be fed to a [post processing filter](https://owntech-foundation.github.io/Documentation/controlLibrary/docs/use-filters).
 
 !!! example
-    === "Retrieve 5 values"
+    === "Retrieve all values since last call"
         ```
-        spin.data.getRawValues()
+        uint32_t valuesCount;
+        uint16_t* raw_values = spin.data.getRawValues(5, valuesCount);
         ```
 
 ::: doxy.powerAPI.class
