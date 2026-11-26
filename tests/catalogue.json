@@ -653,6 +653,51 @@
    "id": "L0-PAD-07",
    "title": "A value arrives on every ADC-capable pin through the last ADC it was enabled on",
    "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins after enabling every pair"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env SAF (tests/firmware/safety_report: Twist config, Safety API; I1/V1/I2/V2/Ihigh/Vhigh on ADC1/ADC2 software-triggered from a 1 ms TIM6 critical task, no PWM; a trip drives the leg GPIOs low); judged over SWD",
+   "source": "`tests/l0/target_safety_report/run.py`, `tests/firmware/safety_report/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-SAF-00",
+   "title": "Safety report test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_safety_report exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env SAF (tests/firmware/safety_report: Twist config, Safety API; I1/V1/I2/V2/Ihigh/Vhigh on ADC1/ADC2 software-triggered from a 1 ms TIM6 critical task, no PWM; a trip drives the leg GPIOs low); judged over SWD",
+   "source": "`tests/l0/target_safety_report/run.py`, `tests/firmware/safety_report/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-SAF-01",
+   "title": "Safety report test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e SAF -t upload` exits 0"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env SAF (tests/firmware/safety_report: Twist config, Safety API; I1/V1/I2/V2/Ihigh/Vhigh on ADC1/ADC2 software-triggered from a 1 ms TIM6 critical task, no PWM; a trip drives the leg GPIOs low); judged over SWD",
+   "source": "`tests/l0/target_safety_report/run.py`, `tests/firmware/safety_report/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-SAF-02",
+   "title": "Safety report struct read over SWD",
+   "criterion": "magic 0x53414631, layout 1, rc 0 (sensors, data and critical task started), within 30 s of the upload"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env SAF (tests/firmware/safety_report: Twist config, Safety API; I1/V1/I2/V2/Ihigh/Vhigh on ADC1/ADC2 software-triggered from a 1 ms TIM6 critical task, no PWM; a trip drives the leg GPIOs low); judged over SWD",
+   "source": "`tests/l0/target_safety_report/run.py`, `tests/firmware/safety_report/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-SAF-03",
+   "title": "Safety error thread reports the channel that tripped (Core-staging#47)",
+   "criterion": "first error block printed after one channel's minimum threshold is set above any reading: that channel true, the five others false; for I1, V1, I2, V2, Ihigh, Vhigh (.a-.f)"
   }
  ]
 }

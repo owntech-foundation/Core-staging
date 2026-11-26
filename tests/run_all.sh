@@ -60,6 +60,7 @@ object_code() {
         target_data_dispatch) echo ADD-00 ;;
         target_timing) echo TIM-00 ;;
         target_data_pins) echo PAD-00 ;;
+        target_safety_report) echo SAF-00 ;;
         l1) echo INT-00 ;;
         *) echo "$1" | tr '[:lower:]' '[:upper:]' ;;
     esac
