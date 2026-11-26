@@ -58,7 +58,7 @@ To work with Shield API, include the following file in your code:
         4\. Set the phase shift in degree [`shield.power.setPhaseShift(ALL, ps_degree)`](https://owntech-foundation.github.io/Documentation/1.0.0/powerAPI/classPowerAPI/#function-setphaseshift)
         </details>
 
-        5\. Enable the ADC acquisition for twist to get voltage and current measures [`shield.sensors.enableDefaultTwistSensors()`]#function-enabledefaulttwistsensors)
+        5\. Enable the ADC acquisition for twist to get voltage and current measures [`shield.sensors.enableDefaultTwistSensors()`](#function-enabledefaulttwistsensors)
         6\. Set the slope compensation to control the output current[`shield.power.setSlopeCompensation(ALL, 1.4, 1.0)`](https://owntech-foundation.github.io/Documentation/1.0.0/powerAPI/classPowerAPI/#function-setslopecompensation)
         7\. Then start the converters [`shield.power.start(ALL)`](https://owntech-foundation.github.io/Documentation/1.0.0/powerAPI/classPowerAPI/#function-start)
 

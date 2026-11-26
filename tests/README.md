@@ -36,6 +36,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`run_all.sh`](run_all.sh) | Campaign runner: every `tests/l0/*/run.sh`, then record, review page, control center |
 | [`common/`](common/README.md) | Check helper, record writer, review page, control center, catalogue checker, on-target harness and preflight |
 | [`firmware/`](firmware/) | Test firmware environments ([`pio_tests.ini`](firmware/pio_tests.ini)) and their app folders, built with `OWNTECH_APP_DIR` |
+| [`firmware/api_compile/`](firmware/api_compile/main.cpp) | Build tier: every public call, built (never run) in the none/twist/ownverter (+twist130 for ngnd/uart) configs by `tools/build_api_compile.sh` on GitHub ([`api-build.yml`](../.github/workflows/api-build.yml)); known failures in [`known_failures.txt`](firmware/api_compile/known_failures.txt). The same workflow checks that every call in `docs/*.md` exists (`tools/api_calls.py docs`) |
 | [`l0/framework_selftest/`](l0/framework_selftest/README.md) | L0-FWK: the framework checks itself, without hardware |
 | [`l0/target_smoke/`](l0/target_smoke/README.md) | L0-TGT: build → flash → SWD read on a Spin through an ST-Link |
 | [`l0/target_critical_task/`](l0/target_critical_task/README.md) | L0-CTK: `createCritical()` refuses periods its source cannot produce and runs accepted ones at their period (Core#174) |

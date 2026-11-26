@@ -47,3 +47,25 @@ The campaign report a human reads to decide on graduation.
 
 **Sign-off**:
 A human's validation of a graduation report; may be the author's own, stated in the report.
+
+**Bare CUT**:
+The CUT with no power board under it, on the SPOC bench as wired.
+
+**Regression suite**:
+Every test that covers Core's API, each placed in a tier; a gate selects from it.
+_Avoid_: test suite (alone)
+
+**Tier**:
+When and where a test runs: build-only, per-PR, nightly, or supervised.
+
+**Supervised campaign**:
+A campaign run with a person present, for tests needing a power stage or hand-held wires or probes; its record names who supervised it.
+
+**Coverage matrix**:
+Each API call, the test that covers it and its tier, or the reason it is a gap.
+
+**Known failure**:
+A test that fails on the baseline as well as on the change: a bug that was already there, tracked by its own ticket.
+
+**Reference run**:
+A repeated timing measurement whose mean and spread later timing results are compared against.
