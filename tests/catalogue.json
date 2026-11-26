@@ -222,6 +222,84 @@
    "status": "implemented",
    "status_note": "Implemented 2026-11-19 on Core2 (luizvilla/Core#26)",
    "harness": "tests/l0/spoc_cal/run.sh --run"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-00",
+   "title": "Critical task test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_critical_task exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-01",
+   "title": "Critical task test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e CTK -t upload` exits 0"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-02",
+   "title": "createCritical() refuses a period its source cannot produce (Core#174)",
+   "criterion": "returns -1: HRTIM 5000 us and 1285 us (.a1, .a2: over 256 periods of 5 us); TIM6 10000 us and 6554 us (.b1, .b2: over 6553 us)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-03",
+   "title": "createCritical() accepts the longest period of each source",
+   "criterion": "returns 0: HRTIM 1280 us (.a), TIM6 6553 us (.b)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-04",
+   "title": "The accepted critical task runs at its period, on-chip",
+   "criterion": "runs against uptime over 4 s = 1280 us (.a), 6553 us (.b), ±1 %"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-05",
+   "title": "The accepted critical task runs at its period, on PA6",
+   "criterion": "PA6 toggled each run: 1 / (2 × FREQuency), median of 5 = 1280 us (.a), 6553 us (.b), ±1 %"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
+   "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-CTK-06",
+   "title": "Period actually run after an out-of-range period was accepted",
+   "criterion": "INFO, reported only when an out-of-range period is accepted (before Core#174's fix)"
   }
  ]
 }
