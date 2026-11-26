@@ -33,6 +33,14 @@ if(CONFIG_OWNTECH_SPIN_API)
   endif()
 
   # UART API
+  # It drives usart1: stop here with a readable message rather than let UartHAL.cpp fail on an undeclared
+  # __device_dts_ord_N when the device tree has no enabled usart1.
+  if (CONFIG_OWNTECH_UART_API AND NOT CONFIG_OWNTECH_DT_USART1_ENABLED)
+    message(FATAL_ERROR
+      "CONFIG_OWNTECH_UART_API=y, but the device tree has no enabled usart1 "
+      "(shield '${SHIELD}'). The UART API drives usart1, which only some shields enable. "
+      "Remove CONFIG_OWNTECH_UART_API from app.conf, or enable &usart1 in an app.overlay.")
+  endif()
   if (CONFIG_OWNTECH_UART_API)
     zephyr_library_sources(
       src/UartHAL.cpp

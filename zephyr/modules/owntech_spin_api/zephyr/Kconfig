@@ -1,3 +1,11 @@
+config OWNTECH_DT_USART1_ENABLED
+	def_bool $(dt_nodelabel_enabled,usart1)
+	help
+		The device tree (shield overlay or app.overlay) enables usart1,
+		which the UART API (OWNTECH_UART_API) drives. The module's
+		CMakeLists.txt stops the build with a clear message when
+		OWNTECH_UART_API is set without it.
+
 config OWNTECH_SPIN_API
 	bool "Enable OwnTech Spin API"
 	default y
@@ -32,5 +40,8 @@ if OWNTECH_SPIN_API
 	help
 		The UART API is a module that aggregates basic UART functionality
 		for shields that supports it.
+		It drives usart1, so it needs a device tree that enables usart1
+		(none of the Twist and Ownverter shields does): otherwise the
+		build stops with an error naming this option.
 
 endif
