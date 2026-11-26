@@ -128,6 +128,17 @@
    "criterion": "INFO: DBGMCU_IDCODE"
   },
   {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "A Spin with MCUboot, ST-Link over SWD; env STLink (Core's default app, upload_protocol = stlink)",
+   "source": "`tests/l0/target_smoke/run.py`, `owntech/pio_extra.ini`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TGT-05",
+   "title": "The users' ST-Link upload works",
+   "criterion": "`pio run -e STLink -t upload` exits 0 (OpenOCD accepts the transport the platform selects)"
+  },
+  {
    "id": "L0-CAL-01",
    "tab": "bench",
    "level": "L0",
