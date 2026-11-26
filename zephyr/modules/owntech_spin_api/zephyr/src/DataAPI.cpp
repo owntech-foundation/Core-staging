@@ -754,15 +754,15 @@ uint8_t DataAPI::getChannelNumber(adc_t adc_num, uint8_t shield_pin)
 				return 2;
 				break;
 			case 31:
-				return 5;
+				return 15;
 				break;
 			case 37:
 				return 12;
 				break;
-			case 50:
+			case 51:
 				return 3;
 				break;
-			case 51:
+			case 52:
 				return 4;
 				break;
 			default:
@@ -895,6 +895,9 @@ adc_t DataAPI::getDefaultAdcForPin(uint8_t pin_number)
 		/* These pins allow ADC 1 and ADC 3: default to ADC 1 */
 		case 31:
 		case 37:
+		/* These pins allow ADC 1 and ADC 4: default to ADC 1 */
+		case 2:
+		case 5:
 			return ADC_1;
 			break;
 		/* These pins allow only ADC 2 */
@@ -906,16 +909,12 @@ adc_t DataAPI::getDefaultAdcForPin(uint8_t pin_number)
 		case 44:
 		case 45:
 		/* This pin allows ADC 2 and ADC 4: default to ADC 2 */
-		case 5:
+		case 6:
 			return ADC_2;
 			break;
 		/* This pin allows only ADC 3 */
 		case 4:
 			return ADC_3;
-			break;
-		/* This pin allows only ADC 4 */
-		case 2:
-			return ADC_4;
 			break;
 		/* This pin allows only ADC 5 */
 		case 12:
@@ -929,7 +928,7 @@ adc_t DataAPI::getDefaultAdcForPin(uint8_t pin_number)
 
 adc_t DataAPI::getCurrentAdcForPin(uint8_t pin_number)
 {
-	if ( (pin_number > 1) && (pin_number <=PIN_COUNT) )
+	if ( (pin_number >= 1) && (pin_number <= PIN_COUNT) )
 	{
 		adc_t currentAdc = DataAPI::current_adc[pin_number-1];
 
