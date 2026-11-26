@@ -25,6 +25,14 @@
    "notes": [
     "SPOC tests run on the SPOC bench only when asked: `tests/run_all.sh --l0 --target`, or the test's own `run.sh --run`. CUT on Core-CUT, MUX on Core-MUX, MHO984 on USB: `bash tests/common/spoc_preflight.sh`."
    ]
+  },
+  {
+   "id": "timing",
+   "title": "Timing",
+   "question": "How many cycles do the Core API hot-path calls and the critical task cost on the Spin, and did a change make them slower?",
+   "notes": [
+    "On-target, like the On target tab: `tests/run_all.sh --l0 --target` or `tests/l0/target_timing/run.sh --run`. Verdicts are INFO until `tests/l0/target_timing/reference.json` holds a reference run; then a row regresses when its mean exceeds the reference by more than max(10 %, 3σ) + 50 cycles (Core-staging#35). The reference run on main and pre-zephyr-4.4: `tests/l0/target_timing/reference_run.sh`."
+   ]
   }
  ],
  "tests": [
@@ -478,6 +486,84 @@
    "id": "L0-ADD-07",
    "title": "CPU left by the critical task and the dispatch",
    "criterion": "INFO: background spins per second"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-00",
+   "title": "Timing test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_timing exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-01",
+   "title": "Timing test firmware builds, flashes, starts its critical task and finishes",
+   "criterion": "`pio run -e TIM -t upload` exits 0; createCritical returns 0; the report reaches state DONE"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-02",
+   "title": "Cost per call of the hot-path PWM and DataAPI calls (one row per call)",
+   "criterion": "N = 100 samples per call in the critical task, interrupts masked; mean/σ/worst cycles; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-03",
+   "title": "Critical-task period and jitter",
+   "criterion": "INFO: entry-to-entry period over 10000 runs, without (task0) and with (task) the scheduler's data dispatch: mean error in ppm, σ (jitter), worst"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-04",
+   "title": "Critical-task interrupt overhead and the scheduler's data dispatch",
+   "criterion": "entry latency, exit latency and their sum, without and with the dispatch, seen from a spinning background task; data.dispatch = their difference; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-05",
+   "title": "Interrupts held off before the critical task; other interruptions",
+   "criterion": "irqHeldOff: HRTIM period event to interrupt taken (modulo the 5 us PWM period); mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists. otherIrq (INFO): background gaps holding no critical run"
+  },
+  {
+   "tab": "timing",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env TIM (tests/firmware/timing: HRTIM 200 kHz, PWMA running, 100 us HRTIM critical task; ADC2 pins 34/35 every period, ADC1 pin 24 software-triggered); DWT cycles read over SWD",
+   "source": "`tests/l0/target_timing/run.py`, `tests/l0/target_timing/evaluate.py`, `tests/firmware/timing/main.cpp`",
+   "status": "planned",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-TIM-06",
+   "title": "Critical-task marker on PA6 seen on the scope",
+   "criterion": "Planned: period and pulse width of the PA6 marker on the MHO984 (BLOCKED: needs scope)"
   }
  ]
 }
