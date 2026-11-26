@@ -13,8 +13,8 @@
  *    every run (counts: no samples lost) and never fetches pin 34, which the DAC drives with a sawtooth on PA6:
  *    its peek() must follow. Every late_every runs the task busy-waits late_us, so the next dispatch is late.
  *    The background task spins on a counter: what the dispatch leaves of the CPU.
- *  - mode 2, heap: pins 24 (ADC1) and 34 (ADC2), a 5 ms TIM6 task: DMA buffers of 1000+ samples per ADC, more
- *    than the 4 KB heap holds. The board must keep running. TIM6 is a zero-latency interrupt: its task makes no
+ *  - mode 2, heap: pins 24 (ADC1, software-triggered) and 34 (ADC2, converting every PWM period), a 5 ms TIM6
+ *    task: DMA buffers of 1000+ samples per ADC, more than the 4 KB heap holds for both. The board must keep running. TIM6 is a zero-latency interrupt: its task makes no
  *    kernel call, and run_ms is stamped by the background task.
  */
 #include <stdint.h>
@@ -111,6 +111,15 @@ static void start_mode(uint32_t mode)
 		spin.dac.setConstValue(2, 1, saw);
 		g_add_report.rc = task.createCritical(task_dispatch, 100);
 	} else {
+		/* ADC1 (software-triggered) takes the heap first; ADC2 converts every PWM period, so a DMA buffer it
+		 * could not get is written through (Core#175). */
+		spin.pwm.setAdcDecimation(PWMA, 1);
+		spin.pwm.setAdcTrigger(PWMA, ADC_2);
+		spin.pwm.enableAdcTrigger(PWMA);
+		spin.pwm.setAdcTriggerInstant(PWMA, 0.06);
+		spin.data.configureTriggerSource(ADC_1, TRIG_SOFTWARE);
+		spin.data.configureTriggerSource(ADC_2, TRIG_PWM);
+		spin.data.configureDiscontinuousMode(ADC_2, 1);
 		spin.data.enableAcquisition(24, ADC_1);
 		spin.data.enableAcquisition(34, ADC_2);
 		g_add_report.rc = task.createCritical(task_heap, 5000, source_tim6);
