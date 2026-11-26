@@ -1,0 +1,7 @@
+/* Build tier only: usart1 on PB6/PB7 as the O2 shield wires it, so that the UART API (spin.uart) compiles. */
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pb6 &usart1_rx_pb7>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
