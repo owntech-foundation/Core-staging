@@ -1,0 +1,482 @@
+{
+ "format": 1,
+ "unit": "core cycles",
+ "rule": "regression if mean > ref + max(10 %, 3 sigma) + 50 cycles; improved (check it) if faster by the same margin (Core-staging#35)",
+ "against": "main",
+ "refs": {
+  "main": {
+   "firmware": "env TIM at ec6461e-dirty",
+   "ref_sha": "main ec6461e",
+   "harness_sha": "91098b3",
+   "date": "2026-11-26",
+   "reason": "first reference timing run, main vs pre-zephyr-4.4 (Core-staging#37); main = ec6461e, harness 91098b3",
+   "core_hz": 170000000,
+   "repeats": 100,
+   "task_runs": 10000,
+   "probe_overhead": 1,
+   "rows": {
+    "probe.empty": {
+     "n": 100,
+     "mean": 15.0,
+     "sigma": 0.0,
+     "min": 15,
+     "worst": 15
+    },
+    "pwm.setDutyCycle": {
+     "n": 100,
+     "mean": 194.33,
+     "sigma": 2.38,
+     "min": 193,
+     "worst": 211
+    },
+    "pwm.setDutyCycleRaw": {
+     "n": 100,
+     "mean": 159.49,
+     "sigma": 0.5,
+     "min": 159,
+     "worst": 160
+    },
+    "pwm.setPhaseShift": {
+     "n": 100,
+     "mean": 396.65,
+     "sigma": 0.48,
+     "min": 396,
+     "worst": 397
+    },
+    "pwm.setAdcTrigInstant": {
+     "n": 100,
+     "mean": 236.09,
+     "sigma": 1.11,
+     "min": 235,
+     "worst": 247
+    },
+    "pwm.stopDualOutput": {
+     "n": 100,
+     "mean": 102.48,
+     "sigma": 0.5,
+     "min": 102,
+     "worst": 103
+    },
+    "pwm.startDualOutput": {
+     "n": 100,
+     "mean": 106.67,
+     "sigma": 0.47,
+     "min": 106,
+     "worst": 107
+    },
+    "pwm.stopSingleOutput": {
+     "n": 100,
+     "mean": 120.48,
+     "sigma": 0.5,
+     "min": 120,
+     "worst": 121
+    },
+    "pwm.startSingleOutput": {
+     "n": 100,
+     "mean": 110.66,
+     "sigma": 0.47,
+     "min": 110,
+     "worst": 111
+    },
+    "pwm.getPeriod": {
+     "n": 100,
+     "mean": 90.86,
+     "sigma": 0.35,
+     "min": 90,
+     "worst": 91
+    },
+    "data.getLatestValue": {
+     "n": 100,
+     "mean": 551.77,
+     "sigma": 1.41,
+     "min": 551,
+     "worst": 565
+    },
+    "data.getLatestValueV": {
+     "n": 100,
+     "mean": 562.24,
+     "sigma": 1.83,
+     "min": 560,
+     "worst": 575
+    },
+    "data.peekLatestValue": {
+     "n": 100,
+     "mean": 459.33,
+     "sigma": 2.03,
+     "min": 458,
+     "worst": 472
+    },
+    "data.getRawValues": {
+     "n": 100,
+     "mean": 430.98,
+     "sigma": 0.2,
+     "min": 429,
+     "worst": 431
+    },
+    "data.getValues": {
+     "n": 100,
+     "mean": 1249.76,
+     "sigma": 9.64,
+     "min": 1182,
+     "worst": 1264
+    },
+    "data.convertValue": {
+     "n": 100,
+     "mean": 290.26,
+     "sigma": 1.82,
+     "min": 290,
+     "worst": 303
+    },
+    "data.triggerAcq": {
+     "n": 100,
+     "mean": 201.91,
+     "sigma": 0.29,
+     "min": 201,
+     "worst": 202
+    },
+    "task0.period": {
+     "n": 10000,
+     "mean": 17000.06,
+     "sigma": 19.14,
+     "min": 16455,
+     "worst": 17628
+    },
+    "task0.entryLatency": {
+     "n": 10000,
+     "mean": 205.24,
+     "sigma": 73.9,
+     "min": 160,
+     "worst": 2864
+    },
+    "task0.exitLatency": {
+     "n": 10000,
+     "mean": 167.43,
+     "sigma": 23.69,
+     "min": 127,
+     "worst": 226
+    },
+    "task0.isrOverhead": {
+     "n": 10000,
+     "mean": 372.68,
+     "sigma": 71.72,
+     "min": 362,
+     "worst": 3040
+    },
+    "task0.irqHeldOff": {
+     "n": 10000,
+     "mean": 653.85,
+     "sigma": 324.58,
+     "min": 0,
+     "worst": 849
+    },
+    "task0.body": {
+     "n": 10000,
+     "mean": 133.46,
+     "sigma": 10.13,
+     "min": 90,
+     "worst": 166
+    },
+    "task0.otherIrq": {
+     "n": 2031465,
+     "mean": 81.19,
+     "sigma": 19.55,
+     "min": 80,
+     "worst": 2714
+    },
+    "task.period": {
+     "n": 10000,
+     "mean": 17000.0,
+     "sigma": 13.76,
+     "min": 16731,
+     "worst": 17270
+    },
+    "task.entryLatency": {
+     "n": 10000,
+     "mean": 1839.44,
+     "sigma": 29.44,
+     "min": 1788,
+     "worst": 2159
+    },
+    "task.exitLatency": {
+     "n": 10000,
+     "mean": 215.22,
+     "sigma": 128.94,
+     "min": 155,
+     "worst": 3110
+    },
+    "task.isrOverhead": {
+     "n": 10000,
+     "mean": 2054.66,
+     "sigma": 127.23,
+     "min": 1974,
+     "worst": 4939
+    },
+    "task.irqHeldOff": {
+     "n": 10000,
+     "mean": 707.77,
+     "sigma": 276.1,
+     "min": 0,
+     "worst": 849
+    },
+    "task.body": {
+     "n": 10000,
+     "mean": 186.99,
+     "sigma": 0.73,
+     "min": 115,
+     "worst": 187
+    },
+    "task.otherIrq": {
+     "n": 1809424,
+     "mean": 81.56,
+     "sigma": 20.91,
+     "min": 80,
+     "worst": 2931
+    },
+    "data.dispatch": {
+     "n": 10000,
+     "mean": 1634.2,
+     "sigma": 79.55,
+     "min": 1628,
+     "worst": 1999
+    }
+   }
+  },
+  "pre-zephyr-4.4": {
+   "firmware": "env TIM at 839d388-dirty",
+   "ref_sha": "pre-zephyr-4.4 839d388",
+   "harness_sha": "91098b3",
+   "date": "2026-11-26",
+   "reason": "first reference timing run, main vs pre-zephyr-4.4 (Core-staging#37); pre-zephyr-4.4 = 839d388, harness 91098b3",
+   "core_hz": 170000000,
+   "repeats": 100,
+   "task_runs": 10000,
+   "probe_overhead": 1,
+   "rows": {
+    "probe.empty": {
+     "n": 100,
+     "mean": 27.0,
+     "sigma": 0.0,
+     "min": 27,
+     "worst": 27
+    },
+    "pwm.setDutyCycle": {
+     "n": 100,
+     "mean": 327.39,
+     "sigma": 2.22,
+     "min": 327,
+     "worst": 340
+    },
+    "pwm.setDutyCycleRaw": {
+     "n": 100,
+     "mean": 275.0,
+     "sigma": 0.0,
+     "min": 275,
+     "worst": 275
+    },
+    "pwm.setPhaseShift": {
+     "n": 100,
+     "mean": 669.0,
+     "sigma": 0.0,
+     "min": 669,
+     "worst": 669
+    },
+    "pwm.setAdcTrigInstant": {
+     "n": 100,
+     "mean": 430.06,
+     "sigma": 0.42,
+     "min": 430,
+     "worst": 433
+    },
+    "pwm.stopDualOutput": {
+     "n": 100,
+     "mean": 183.0,
+     "sigma": 0.0,
+     "min": 183,
+     "worst": 183
+    },
+    "pwm.startDualOutput": {
+     "n": 100,
+     "mean": 200.0,
+     "sigma": 0.0,
+     "min": 200,
+     "worst": 200
+    },
+    "pwm.stopSingleOutput": {
+     "n": 100,
+     "mean": 198.0,
+     "sigma": 0.0,
+     "min": 198,
+     "worst": 198
+    },
+    "pwm.startSingleOutput": {
+     "n": 100,
+     "mean": 189.0,
+     "sigma": 0.0,
+     "min": 189,
+     "worst": 189
+    },
+    "pwm.getPeriod": {
+     "n": 100,
+     "mean": 153.0,
+     "sigma": 0.0,
+     "min": 153,
+     "worst": 153
+    },
+    "data.getLatestValue": {
+     "n": 100,
+     "mean": 934.1,
+     "sigma": 0.7,
+     "min": 934,
+     "worst": 939
+    },
+    "data.getLatestValueV": {
+     "n": 100,
+     "mean": 949.1,
+     "sigma": 0.7,
+     "min": 949,
+     "worst": 954
+    },
+    "data.peekLatestValue": {
+     "n": 100,
+     "mean": 822.15,
+     "sigma": 0.85,
+     "min": 822,
+     "worst": 827
+    },
+    "data.getRawValues": {
+     "n": 100,
+     "mean": 745.0,
+     "sigma": 0.0,
+     "min": 745,
+     "worst": 745
+    },
+    "data.getValues": {
+     "n": 100,
+     "mean": 1727.53,
+     "sigma": 11.28,
+     "min": 1663,
+     "worst": 1793
+    },
+    "data.convertValue": {
+     "n": 100,
+     "mean": 493.18,
+     "sigma": 0.74,
+     "min": 493,
+     "worst": 498
+    },
+    "data.triggerAcq": {
+     "n": 100,
+     "mean": 359.0,
+     "sigma": 0.0,
+     "min": 359,
+     "worst": 359
+    },
+    "task0.period": {
+     "n": 10000,
+     "mean": 17000.0,
+     "sigma": 62.04,
+     "min": 15156,
+     "worst": 18844
+    },
+    "task0.entryLatency": {
+     "n": 10000,
+     "mean": 248.16,
+     "sigma": 59.56,
+     "min": 195,
+     "worst": 2161
+    },
+    "task0.exitLatency": {
+     "n": 10000,
+     "mean": 191.4,
+     "sigma": 43.31,
+     "min": 146,
+     "worst": 693
+    },
+    "task0.isrOverhead": {
+     "n": 10000,
+     "mean": 439.56,
+     "sigma": 74.76,
+     "min": 416,
+     "worst": 2469
+    },
+    "task0.irqHeldOff": {
+     "n": 10000,
+     "mean": 617.96,
+     "sigma": 348.25,
+     "min": 0,
+     "worst": 849
+    },
+    "task0.body": {
+     "n": 10000,
+     "mean": 147.77,
+     "sigma": 30.4,
+     "min": 87,
+     "worst": 286
+    },
+    "task0.otherIrq": {
+     "n": 2019438,
+     "mean": 81.27,
+     "sigma": 18.12,
+     "min": 80,
+     "worst": 1979
+    },
+    "task.period": {
+     "n": 10000,
+     "mean": 17000.01,
+     "sigma": 25.42,
+     "min": 15211,
+     "worst": 18695
+    },
+    "task.entryLatency": {
+     "n": 10000,
+     "mean": 2169.29,
+     "sigma": 35.26,
+     "min": 2056,
+     "worst": 4091
+    },
+    "task.exitLatency": {
+     "n": 10000,
+     "mean": 340.48,
+     "sigma": 44.73,
+     "min": 245,
+     "worst": 2088
+    },
+    "task.isrOverhead": {
+     "n": 10000,
+     "mean": 2509.77,
+     "sigma": 38.2,
+     "min": 2386,
+     "worst": 4452
+    },
+    "task.irqHeldOff": {
+     "n": 10000,
+     "mean": 405.17,
+     "sigma": 407.33,
+     "min": 0,
+     "worst": 849
+    },
+    "task.body": {
+     "n": 10000,
+     "mean": 303.9,
+     "sigma": 9.12,
+     "min": 185,
+     "worst": 309
+    },
+    "task.otherIrq": {
+     "n": 1726863,
+     "mean": 82.15,
+     "sigma": 25.3,
+     "min": 80,
+     "worst": 2020
+    },
+    "data.dispatch": {
+     "n": 10000,
+     "mean": 1921.13,
+     "sigma": 69.21,
+     "min": 1861,
+     "worst": 3896
+    }
+   }
+  }
+ }
+}
