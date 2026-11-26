@@ -130,6 +130,10 @@ void scheduling_set_uninterruptible_synchronous_task_interrupt_source(
 	interrupt_source = int_source;
 }
 
+/* Longest periods each interrupt source can produce (Core#174). */
+static const uint32_t TIM6_MAX_PERIOD_US   = 6553;
+static const uint32_t HRTIM_MAX_REPETITION = 256;
+
 int8_t scheduling_define_uninterruptible_synchronous_task(
 									task_function_t periodic_task,
 									uint32_t task_period_us)
@@ -145,6 +149,17 @@ int8_t scheduling_define_uninterruptible_synchronous_task(
 	{
 		if (device_is_ready(timer6) == false)
 			return -1;
+
+		/* TIM6 counts at 10 MHz with a 16-bit auto-reload (period * 10 - 1),
+		 * so it cannot produce a period above 6553 us. */
+		if ( (task_period_us == 0) ||
+			 (task_period_us > TIM6_MAX_PERIOD_US) )
+		{
+			printk("Critical task: %u us is out of source_tim6's range "
+				   "(1 to %u us)\n", (unsigned)task_period_us,
+				   (unsigned)TIM6_MAX_PERIOD_US);
+			return -1;
+		}
 
 		task_period = task_period_us;
 		user_periodic_task = periodic_task;
@@ -176,6 +191,17 @@ int8_t scheduling_define_uninterruptible_synchronous_task(
 
 		if (repetition == 0)
 			return -1;
+
+		/* The master repetition counter has 8 bits (repetition - 1). */
+		if (repetition > HRTIM_MAX_REPETITION)
+		{
+			printk("Critical task: %u us is %u PWM periods; source_hrtim "
+				   "reaches at most %u (%u us): use a shorter period "
+				   "or source_tim6\n", (unsigned)task_period_us,
+				   (unsigned)repetition, (unsigned)HRTIM_MAX_REPETITION,
+				   (unsigned)(HRTIM_MAX_REPETITION * hrtim_period_us));
+			return -1;
+		}
 
 		task_period = task_period_us;
 		user_periodic_task = periodic_task;

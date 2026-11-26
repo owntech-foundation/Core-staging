@@ -75,9 +75,10 @@ public:
 	 *        to be executed periodically.
 	 * 
 	 * @param task_period_us Period of the function in µs.
-	 *        Allowed range: 1 to 6553 µs.
-	 *        If interrupt source is `HRTIM`, this value *must* be an
-	 *        integer multiple of the `HRTIM` period.
+	 *        With TIM6 as the source: 1 to 6553 µs.
+	 *        With the `HRTIM` as the source: an integer multiple of the
+	 *        `HRTIM` period, at most 256 periods (1280 µs at 200 kHz).
+	 *        A period out of range is refused (`-1`, with a message).
 	 * 
 	 * @param int_source Interrupt source that triggers the task.
 	 *        By default, the `HRTIM` is the source, but this optional
