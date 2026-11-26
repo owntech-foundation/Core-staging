@@ -1,0 +1,10 @@
+# Public calls the build tier cannot compile or link in a configuration, one per line:
+#   <config> <call> <why>
+# main.cpp guards each one out with `|| defined(APIC_WITH_KNOWN_FAILURES)`; tools/api_calls.py compiled --known lists
+# them in the job summary. Remove a line, and its guard, once fixed.
+ownverter shield.power.connectCapacitor     undefined reference: declared for every shield in Power.h, defined only under CONFIG_SHIELD_TWIST (Power.cpp)
+ownverter shield.power.disconnectCapacitor  undefined reference: declared for every shield in Power.h, defined only under CONFIG_SHIELD_TWIST (Power.cpp)
+#
+# Not a configuration of this tier: the O2 shield (o2_v1_1_2) does not build on staging at all. Its overlay has no
+# sensor-conv-type properties, which Sensors.cpp needs; with the default prj.conf, Rs485.cpp also needs usart3, which
+# the O2 lacks; and Power.cpp does not define connectDriver/disconnectDriver nor the capacitor calls for it.
