@@ -41,6 +41,9 @@
 /* Current file header */
 #include "data_dispatch.h"
 
+/* Dispatch periods of conversions the DMA buffers can hold */
+#define DATA_DISPATCH_MARGIN_TICKS 4
+
 /**
  *  Local variables
  */
@@ -132,6 +135,84 @@ __STATIC_INLINE void _data_dispatch_swap_buffers(uint8_t adc_index,
  * Public API
  */
 
+/**
+ * Allocates the DMA buffer and the per-channel tables and double buffers of
+ * one ADC. @return false when any allocation failed (nothing is released:
+ * call _data_dispatch_release()).
+ */
+static bool _data_dispatch_allocate(uint8_t adc_index, size_t dma_buffer_size)
+{
+	uint8_t channels = enabled_channels_count[adc_index];
+
+	dma_main_buffers[adc_index] =
+			(uint16_t*)k_malloc(dma_buffer_size * sizeof(uint16_t));
+	adc_channel_buffers[adc_index] =
+			(uint16_t***)k_calloc(channels, sizeof(uint16_t**));
+	buffers_data_count[adc_index] =
+			(uint32_t*)k_calloc(channels, sizeof(uint32_t));
+	current_buffer[adc_index] =
+			(uint8_t*)k_calloc(channels, sizeof(uint8_t));
+	peek_memory[adc_index] =
+			(uint16_t*)k_calloc(channels, sizeof(uint16_t));
+
+	if ( (dma_main_buffers[adc_index] == nullptr)    ||
+		 (adc_channel_buffers[adc_index] == nullptr) ||
+		 (buffers_data_count[adc_index] == nullptr)  ||
+		 (current_buffer[adc_index] == nullptr)      ||
+		 (peek_memory[adc_index] == nullptr) )
+	{
+		return false;
+	}
+
+	for (int channel_index = 0 ; channel_index < channels ; channel_index++)
+	{
+		/* Prepare double buffer */
+		uint16_t** pair = (uint16_t**)k_calloc(2, sizeof(uint16_t*));
+		adc_channel_buffers[adc_index][channel_index] = pair;
+		if (pair == nullptr)
+			return false;
+
+		pair[0] = (uint16_t*)k_malloc(sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE);
+		pair[1] = (uint16_t*)k_malloc(sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE);
+		if ( (pair[0] == nullptr) || (pair[1] == nullptr) )
+			return false;
+
+		peek_memory[adc_index][channel_index] = PEEK_NO_VALUE;
+	}
+
+	return true;
+}
+
+/** Frees whatever _data_dispatch_allocate() got for one ADC. */
+static void _data_dispatch_release(uint8_t adc_index)
+{
+	if (adc_channel_buffers[adc_index] != nullptr)
+	{
+		for (int channel_index = 0 ;
+			 channel_index < enabled_channels_count[adc_index] ;
+			 channel_index++)
+		{
+			uint16_t** pair = adc_channel_buffers[adc_index][channel_index];
+			if (pair != nullptr)
+			{
+				k_free(pair[0]);
+				k_free(pair[1]);
+				k_free(pair);
+			}
+		}
+	}
+	k_free(adc_channel_buffers[adc_index]);
+	k_free(buffers_data_count[adc_index]);
+	k_free(current_buffer[adc_index]);
+	k_free(peek_memory[adc_index]);
+	k_free(dma_main_buffers[adc_index]);
+	adc_channel_buffers[adc_index] = nullptr;
+	buffers_data_count[adc_index]  = nullptr;
+	current_buffer[adc_index]      = nullptr;
+	peek_memory[adc_index]         = nullptr;
+	dma_main_buffers[adc_index]    = nullptr;
+}
+
 void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 {
 	/* Store dispatch method */
@@ -176,16 +257,24 @@ void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 			}
 			else
 			{
-				dma_buffer_size = repetitions;
+				/**
+				 * Room for DATA_DISPATCH_MARGIN_TICKS dispatch periods: the
+				 * conversion count is read from the DMA position, so more
+				 * conversions than the buffer between two dispatches are
+				 * silently lost. With one period of room, a critical task
+				 * delayed by ~2 PWM periods (long interrupt, synchronous logging)
+				 * lost data.
+				 */
+				dma_buffer_size = repetitions * DATA_DISPATCH_MARGIN_TICKS;
 
 				/**
 				 * Make sure buffer size is a multiple of enabled channels count
 				 * so that each channel data will always be at the same position
 				 */
-				if (repetitions % enabled_channels_count[adc_index] != 0)
+				if (dma_buffer_size % enabled_channels_count[adc_index] != 0)
 				{
 					dma_buffer_size +=  (enabled_channels_count[adc_index]) -
-										(repetitions %
+										(dma_buffer_size %
 										 enabled_channels_count[adc_index]);
 				}
 				else
@@ -201,8 +290,21 @@ void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 			}
 
 			dma_buffer_sizes[adc_index] = dma_buffer_size;
-			dma_main_buffers[adc_index] =
-					(uint16_t*)k_malloc(dma_buffer_size * sizeof(uint16_t));
+
+			/* Allocate everything this ADC needs before starting its DMA:
+			 * with a long critical task the DMA buffer can exceed the heap
+			 * (Core#175), and an unchecked NULL buffer faults the board. */
+			if (_data_dispatch_allocate(adc_index, dma_buffer_size) == false)
+			{
+				printk("data: ADC%u: no memory for a %u-sample DMA buffer "
+					   "and its channel buffers; its values are not "
+					   "acquired (shorten the critical task period, or "
+					   "enlarge CONFIG_HEAP_MEM_POOL_SIZE)\n",
+					   (unsigned)adc_num, (unsigned)dma_buffer_size);
+				_data_dispatch_release(adc_index);
+				enabled_channels_count[adc_index] = 0;
+				continue;
+			}
 
 			if (dispatch_type == interrupt)
 			{
@@ -221,53 +323,6 @@ void data_dispatch_init(dispatch_t dispatch_method, uint32_t repetitions)
 										  disable_interrupts,
 										  dma_main_buffers[adc_index],
 										  dma_buffer_size);
-
-			/* Prepare arrays for each channel */
-			adc_channel_buffers[adc_index] =
-					(uint16_t***)k_malloc(
-						enabled_channels_count[adc_index] * sizeof(uint16_t**)
-					);
-
-			buffers_data_count[adc_index] =
-					(uint32_t*)k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint32_t)
-					);
-
-			current_buffer[adc_index]     =
-					(uint8_t*) k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint8_t)
-					);
-
-			peek_memory[adc_index]        =
-					(uint16_t*)k_calloc(
-						enabled_channels_count[adc_index],
-						sizeof(uint16_t)
-					);
-
-			for (int channel_index = 0 ;
-				 channel_index < enabled_channels_count[adc_index] ;
-				 channel_index++)
-			{
-				/* Prepare double buffer */
-				adc_channel_buffers[adc_index][channel_index] =
-					(uint16_t**)k_malloc(
-									sizeof(uint16_t*) * 2
-								);
-
-				adc_channel_buffers[adc_index][channel_index][0] =
-					(uint16_t*)k_malloc(
-									sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE
-							   );
-
-				adc_channel_buffers[adc_index][channel_index][1] =
-					(uint16_t*)k_malloc(
-									sizeof(uint16_t) * CHANNELS_BUFFERS_SIZE
-							   );
-
-				peek_memory[adc_index][channel_index] = PEEK_NO_VALUE;
-			}
 		}
 	}
 }
@@ -303,46 +358,54 @@ void data_dispatch_do_dispatch(uint8_t adc_num)
 		data_count_in_dma_buffer = dma_get_retrieved_data_count(adc_num);
 	}
 
+	static size_t next_dma_buffer_index[ADC_COUNT] = {0};
+	size_t channel_count = enabled_channels_count[adc_index];
+	size_t dma_buffer_size = (dispatch_type == interrupt) ?
+				channel_count : dma_buffer_sizes[adc_index];
+	size_t dma_buffer_index = (dispatch_type == interrupt) ?
+				0 : next_dma_buffer_index[adc_index];
+	size_t channel_index = dma_buffer_index % channel_count;
+
 	for (size_t dma_index = 0 ;
 		 dma_index < data_count_in_dma_buffer ;
 		 dma_index++)
 	{
-		/* Copy data */
-		size_t dma_buffer_index;
-		if (dispatch_type == interrupt)
-		{
-			dma_buffer_index = dma_index % enabled_channels_count[adc_index];
-		}
-		else
-		{
-			static size_t next_dma_buffer_index[ADC_COUNT] = {0};
-
-			dma_buffer_index = next_dma_buffer_index[adc_index];
-
-			if (next_dma_buffer_index[adc_index] < dma_buffer_sizes[adc_index] - 1)
-			{
-				next_dma_buffer_index[adc_index]++;
-			}
-			else
-			{
-				next_dma_buffer_index[adc_index] = 0;
-			}
-		}
-
 		/* Get info on buffer */
-		size_t channel_index =
-					dma_buffer_index % enabled_channels_count[adc_index];
-
 		uint16_t* active_buffer =
 					_data_dispatch_get_buffer(adc_index, channel_index);
 
 		uint32_t  current_count =
 					_data_dispatch_get_count(adc_index, channel_index);
 
+		/* A full buffer (nobody fetched this channel's values with
+		 * data.get*() since CHANNELS_BUFFERS_SIZE dispatches) keeps its
+		 * last slot for the newest value: peek() stays current and
+		 * nothing is written past the end of the buffer (Core#173). */
+		if (current_count >= CHANNELS_BUFFERS_SIZE)
+		{
+			current_count = CHANNELS_BUFFERS_SIZE - 1;
+		}
 		active_buffer[current_count] = dma_buffer[dma_buffer_index];
 
-		/* Increment count */
+		/* Increment count (saturates at CHANNELS_BUFFERS_SIZE) */
 		_data_dispatch_increment_count(adc_index, channel_index);
+
+		/* Advance to the next sample and channel */
+		dma_buffer_index++;
+		if (dma_buffer_index == dma_buffer_size)
+		{
+			dma_buffer_index = 0;
+		}
+		channel_index++;
+		if (channel_index == channel_count)
+		{
+			channel_index = 0;
+		}
+	}
+
+	if (dispatch_type != interrupt)
+	{
+		next_dma_buffer_index[adc_index] = dma_buffer_index;
 	}
 }
 
@@ -372,6 +435,9 @@ uint16_t* data_dispatch_get_acquired_values(uint8_t adc_number,
 
 	/* Get and check data count */
 	uint8_t channel_index = channel_rank-1;
+	if (channel_index >= enabled_channels_count[adc_index])
+		return nullptr; /* not enabled, or its ADC is left out (no memory) */
+
 	uint32_t current_count =
 				_data_dispatch_get_count(adc_index, channel_index);
 
@@ -400,7 +466,8 @@ uint16_t data_dispatch_peek_acquired_value(uint8_t adc_number,
 {
 	uint8_t adc_index = adc_number-1;
 	uint8_t channel_index = channel_rank-1;
-	if (adc_index < ADC_COUNT)
+	if ( (adc_index < ADC_COUNT) &&
+		 (channel_index < enabled_channels_count[adc_index]) )
 	{
 		/* Get info on buffer */
 		uint16_t* active_buffer =
@@ -421,6 +488,7 @@ uint16_t data_dispatch_peek_acquired_value(uint8_t adc_number,
 	}
 	else
 	{
-		return 0;
+		/* Not enabled, or its ADC is left out (no memory): no value. */
+		return PEEK_NO_VALUE;
 	}
 }

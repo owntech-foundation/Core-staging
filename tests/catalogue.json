@@ -389,6 +389,95 @@
    "id": "L0-DAC-06",
    "title": "DAC full scale and offset",
    "criterion": "INFO: least-squares fit of PA6 voltage against level"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-00",
+   "title": "Data dispatch test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_data_dispatch exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-01",
+   "title": "Data dispatch test firmware builds, flashes and starts its critical tasks",
+   "criterion": "`pio run -e ADD -t upload` exits 0; createCritical returns 0 in both boots (.a, .b)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-02",
+   "title": "No ADC sample lost under scheduler-managed dispatch (Core#161, #162)",
+   "criterion": "pin 35 fetched = elapsed PWM periods / 2 ±1 % over 4 s: on time (.a), with a 200 us late dispatch every 50 runs (.b)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-03",
+   "title": "peek() follows a channel nobody fetches (Core#173)",
+   "criterion": "peek(34) takes >= 4 distinct values in 8 reads, each within 150 LSB of the DAC sawtooth level"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-04",
+   "title": "Nothing written past a full channel buffer (Core#161, #173)",
+   "criterion": "the halfword past each of pin 34's two buffers is unchanged over the test (.a, .b)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-05",
+   "title": "A task whose DMA buffers exceed the heap keeps running (Core#175)",
+   "criterion": "5 ms TIM6 task with ADC1 + ADC2 acquisition: period 5000 us ±5 %, background alive"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-06",
+   "title": "Which ADCs give values when the heap is short",
+   "criterion": "INFO: NO_VALUE marks an ADC left out"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
+   "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-ADD-07",
+   "title": "CPU left by the critical task and the dispatch",
+   "criterion": "INFO: background spins per second"
   }
  ]
 }
