@@ -605,9 +605,10 @@ private:
 	/**
 	 * @brief Retrieve floating-point converted values for a specific ADC channel.
 	 *
-	 * Allocates and fills a buffer of converted values from raw ADC data.
-	 * 
-	 * May initialize internal buffers as needed.
+	 * Fills the channel's buffer of converted values from raw ADC data.
+	 *
+	 * Allocates nothing: start() allocates the buffers of the enabled
+	 * channels, so this can run in the critical task (no kernel call).
 	 *
 	 * @param adc_number ADC index (1–5).
 	 * @param channel_num Channel number.
@@ -726,7 +727,14 @@ private:
 	static DispatchMethod_t dispatch_method;
 	static uint32_t repetition_count_between_dispatches;
 	static adc_t current_adc[PIN_COUNT];
-	static float32_t*** converted_values_buffer;
+	/**
+	 * Converted values of ADC i+1: one CHANNELS_BUFFERS_SIZE slice per
+	 * enabled channel, in rank order. Allocated by start(), freed by stop().
+	 */
+	static float32_t* converted_values_buffer[ADC_COUNT];
+
+	static void allocateConvertedValuesBuffers();
+	static void freeConvertedValuesBuffers();
 
 };
 

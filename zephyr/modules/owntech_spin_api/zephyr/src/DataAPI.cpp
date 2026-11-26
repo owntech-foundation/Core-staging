@@ -49,7 +49,7 @@ uint8_t DataAPI::channels_ranks[ADC_COUNT][CHANNELS_PER_ADC] = {0};
 uint8_t DataAPI::current_rank[ADC_COUNT] = {0};
 DispatchMethod_t DataAPI::dispatch_method = DispatchMethod_t::on_dma_interrupt;
 uint32_t DataAPI::repetition_count_between_dispatches = 0;
-float32_t*** DataAPI::converted_values_buffer = nullptr;
+float32_t* DataAPI::converted_values_buffer[ADC_COUNT] = {nullptr};
 
 
 adc_t DataAPI::current_adc[PIN_COUNT] = {DEFAULT_ADC};
@@ -110,6 +110,10 @@ int8_t DataAPI::start()
 			data_dispatch_init(task, this->repetition_count_between_dispatches);
 	}
 
+	/* Allocate the converted values buffers now: getValues() is called in
+	 * the critical task, where a heap call (kernel lock) faults. */
+	allocateConvertedValuesBuffers();
+
 	/* Make sure module is initialized */
 	if (adcInitialized == false)
 	{
@@ -137,24 +141,7 @@ int8_t DataAPI::stop()
 	adc_stop();
 
 	/* Free buffers storage */
-	if (DataAPI::converted_values_buffer != nullptr)
-	{
-		for (int adc_index = 0 ; adc_index < ADC_COUNT ; adc_index++)
-		{
-			if (DataAPI::converted_values_buffer[adc_index] != nullptr)
-			{
-				for (int channel_index = 0 ;
-					 channel_index < CHANNELS_PER_ADC ;
-					 channel_index++)
-				{
-					delete DataAPI::converted_values_buffer[adc_index][channel_index];
-				}
-				delete DataAPI::converted_values_buffer[adc_index];
-			}
-		}
-		delete DataAPI::converted_values_buffer;
-		DataAPI::converted_values_buffer = nullptr;
-	}
+	freeConvertedValuesBuffers();
 
 	DataAPI::is_started = false;
 
@@ -569,44 +556,29 @@ float32_t* DataAPI::getChannelValues(adc_t adc_number,
 		return nullptr;
 	}
 
-	/* At least one value to convert: make sure a buffer is available */
+	/* The buffer start() allocated for this channel (none if its ADC got no
+	 * memory). No allocation here: this runs in the critical task. */
 	uint8_t adc_index = (uint8_t)adc_number - 1;
-	uint8_t channel_index = channel_num - 1;
-	if (DataAPI::converted_values_buffer == nullptr)
-	{
-		DataAPI::converted_values_buffer = new float32_t**[ADC_COUNT];
-		for (int i = 0 ; i < ADC_COUNT ; i++)
-		{
-			DataAPI::converted_values_buffer[i] = nullptr;
-		}
-	}
+	uint8_t channel_rank = DataAPI::getChannelRank(adc_number, channel_num);
 	if (DataAPI::converted_values_buffer[adc_index] == nullptr)
 	{
-		DataAPI::converted_values_buffer[adc_index] =
-										new float32_t*[CHANNELS_PER_ADC];
-
-		for (int i = 0 ; i < CHANNELS_PER_ADC ; i++)
-		{
-			DataAPI::converted_values_buffer[adc_index][i] = nullptr;
-		}
+		number_of_values_acquired = 0;
+		return nullptr;
 	}
-	if (DataAPI::converted_values_buffer[adc_index][channel_index] == nullptr)
-	{
-		DataAPI::converted_values_buffer[adc_index][channel_index] =
-										new float32_t[CHANNELS_BUFFERS_SIZE];
-	}
+	float32_t* converted_values = DataAPI::converted_values_buffer[adc_index] +
+								  (channel_rank - 1) * CHANNELS_BUFFERS_SIZE;
 
 	/* Proceed to conversion */
 	for (uint32_t i = 0 ; i < number_of_values_acquired ; i++)
 	{
-		DataAPI::converted_values_buffer[adc_index][channel_index][i] =
+		converted_values[i] =
 					data_conversion_convert_raw_value(adc_number,
 													  channel_num,
 													  raw_values[i]);
 	}
 
 	/* Return converted values buffer */
-	return DataAPI::converted_values_buffer[adc_index][channel_index];
+	return converted_values;
 }
 
 float32_t DataAPI::peekChannel(adc_t adc_num, uint8_t channel_num)
@@ -700,6 +672,39 @@ float32_t DataAPI::getChannelLatest(adc_t adc_num,
 			}
 		}
 		return peekValue;
+	}
+}
+
+void DataAPI::allocateConvertedValuesBuffers()
+{
+	for (int adc_index = 0 ; adc_index < ADC_COUNT ; adc_index++)
+	{
+		uint8_t channels = DataAPI::current_rank[adc_index];
+		if ( (channels == 0) ||
+			 (DataAPI::converted_values_buffer[adc_index] != nullptr) )
+		{
+			continue;
+		}
+
+		DataAPI::converted_values_buffer[adc_index] = (float32_t*)k_malloc(
+					channels * CHANNELS_BUFFERS_SIZE * sizeof(float32_t));
+
+		if (DataAPI::converted_values_buffer[adc_index] == nullptr)
+		{
+			printk("data: ADC%u: no memory for the converted values of %u "
+				   "channels; getValues() returns no value for them "
+				   "(enlarge CONFIG_HEAP_MEM_POOL_SIZE)\n",
+				   (unsigned)(adc_index + 1), (unsigned)channels);
+		}
+	}
+}
+
+void DataAPI::freeConvertedValuesBuffers()
+{
+	for (int adc_index = 0 ; adc_index < ADC_COUNT ; adc_index++)
+	{
+		k_free(DataAPI::converted_values_buffer[adc_index]);
+		DataAPI::converted_values_buffer[adc_index] = nullptr;
 	}
 }
 
