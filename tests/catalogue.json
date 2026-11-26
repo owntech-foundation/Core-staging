@@ -800,7 +800,8 @@
     "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
     "criteria": [
      "L0-HRI-04"
-    ]
+    ],
+    "note": "Core#172 up-down re-init, before its fix (luizvilla/Core#41)"
    }
   },
   {
@@ -824,7 +825,8 @@
     "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
     "criteria": [
      "L0-HRI-05"
-    ]
+    ],
+    "note": "Core#172 up-down re-init, before its fix (luizvilla/Core#41)"
    }
   },
   {
@@ -914,7 +916,18 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#38",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-03.d",
+     "L0-PWM-03.e",
+     "L0-PWM-03.f",
+     "L0-PWM-03.g"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
   },
   {
    "tab": "pwm",
@@ -1083,7 +1096,15 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#38",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-12.e"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
   },
   {
    "tab": "pwm",
@@ -1150,7 +1171,8 @@
     "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
     "criteria": [
      "L0-PWM-15"
-    ]
+    ],
+    "note": "Core#166/#167 low-duty reversal, before its fix"
    }
   },
   {
@@ -1168,7 +1190,15 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#8",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
+    "criteria": [
+     "L0-PWM-16"
+    ],
+    "note": "Near-1 reversal at duty 0.999 (CMP1 between PER - 0x60 and PER - 3): not covered by Core#167 as it stands"
+   }
   },
   {
    "tab": "pwm",
@@ -1224,7 +1254,15 @@
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#38",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-19.b"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
   },
   {
    "tab": "pwm",

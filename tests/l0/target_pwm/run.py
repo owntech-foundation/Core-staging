@@ -230,7 +230,12 @@ class Scope:
         self.to(pin1, pin4)
         self.s.set_timebase(periods / f / 10)
         self.s.set_edge_trigger(1, 1.65, sweep='AUTO')
-        self.s.single()
+        # rigol_mho.single() waits ~0.15 s at us timebases: after a step or a route change the scope still shows
+        # the previous record (seen on the bench). Run long enough for a fresh acquisition, then stop.
+        self.s.write(':RUN')
+        time.sleep(0.8)
+        self.s.write(':STOP')
+        time.sleep(0.1)
         out = {1: self.s.waveform(1)}
         if pin4 is not None:
             out[4] = self.s.waveform(4)
@@ -443,18 +448,21 @@ def latency(b, sc):
         pulses = [(r, next((f for f in f8 if f > r), None)) for r in r8]
         pulses = [(r, f - r) for r, f in pulses if f is not None]
         w_old, w_new = (d_from - 0.02) * T, (d_to - 0.02) * T
-        before = [w for r, w in pulses if t0 is not None and r < t0]
-        after = [(r, w) for r, w in pulses if t0 is not None and r >= t0]
-        ok = (t0 is not None and before and after and all(abs(w - w_old) <= 0.05 * T for w in before)
-              and abs(after[0][1] - w_new) <= 0.05 * T and after[0][0] - t0 <= T + 1e-6)
-        lat = after[0][0] - t0 if t0 is not None and after else None
-        good &= line(f'{cid}.{"abcd"[k]}', bool(ok), f'setDutyCycle {d_from} -> {d_to}: the first period that starts '
-                     'after the call has the new duty, earlier pulses keep the old one',
-                     f'old {w_old * 1e6:.2f} us, new {w_new * 1e6:.2f} us ±0.25 us, within one period (+1 us)',
+        tol = 0.05 * T
+        kinds = ['old' if abs(w - w_old) <= tol else 'new' if abs(w - w_new) <= tol else 'glitch' for _, w in pulses]
+        first_new = next((r for (r, _), k in zip(pulses, kinds) if k == 'new' and t0 is not None and r >= t0), None)
+        lat = first_new - t0 if first_new is not None else None
+        # The new duty must apply from a period start (preload), within one period of the call plus the call
+        # itself; every pulse is either the old or the new width (no partial pulse), old ones before new ones.
+        order_ok = 'old' not in kinds[kinds.index('new'):] if 'new' in kinds else False
+        ok = t0 is not None and lat is not None and lat <= T + 1e-6 and 'glitch' not in kinds and order_ok
+        good &= line(f'{cid}.{"abcd"[k]}', bool(ok), f'setDutyCycle {d_from} -> {d_to}: new width from a period start '
+                     'within one period of the call, no partial pulse',
+                     f'old {w_old * 1e6:.2f} us, new {w_new * 1e6:.2f} us ±0.25 us, first new pulse <= 6 us after the marker',
                      'no marker edge' if t0 is None else
-                     f"before {[round(w * 1e6, 2) for w in before]} us, after "
-                     f"{[round(w * 1e6, 2) for _, w in after[:2]]} us, latency "
-                     f"{'-' if lat is None else f'{lat * 1e6:.2f} us'}, call {out.get('rep', {}).get('cycles', '?')} cycles")
+                     f"widths {[round(w * 1e6, 2) for _, w in pulses]} us at {[round((r - t0) * 1e6, 2) for r, _ in pulses]}"
+                     f" us; latency {'-' if lat is None else f'{lat * 1e6:.2f} us'}; call "
+                     f"{out.get('rep', {}).get('cycles', '?')} cycles")
 
     out = {}
 
