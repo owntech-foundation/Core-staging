@@ -88,8 +88,29 @@ def read_words(addr, n):
         return list(struct.unpack(f'<{n}I', open(path, 'rb').read()))
 
 
+def read_blocks(regions):
+    """@brief Several regions [(addr, n words), ...] in one OpenOCD session, without halting; a list of word lists,
+    or None on an SWD error."""
+    with tempfile.TemporaryDirectory() as d:
+        paths = [os.path.join(d, f'm{i}.bin') for i in range(len(regions))]
+        r = openocd(*[f'dump_image {p} {a:#x} {4 * n}' for p, (a, n) in zip(paths, regions)], check=False)
+        if r.returncode != 0:
+            return None
+        out = []
+        for p, (_, n) in zip(paths, regions):
+            if not os.path.exists(p) or os.path.getsize(p) != 4 * n:
+                return None
+            out.append(list(struct.unpack(f'<{n}I', open(p, 'rb').read())))
+        return out
+
+
 def write_word(addr, value):
     openocd(f'mww {addr:#x} {value:#x}')
+
+
+def write_words(pairs):
+    """@brief Writes [(addr, value), ...] in order, in one OpenOCD session (a step's arguments, then its command)."""
+    openocd(*[f'mww {a:#x} {v & 0xFFFFFFFF:#x}' for a, v in pairs])
 
 
 def idcode():

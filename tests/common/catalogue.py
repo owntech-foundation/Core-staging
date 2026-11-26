@@ -9,6 +9,10 @@
 ##   tabs: one per validation stage (Test bench, Model, Boost, Grid observer, Inverter, Application).
 ##   tests: id, tab, level (L0/L1/L2/D), title, criterion, conditions, source, status, status_note, and
 ##   optional harness, verdict_type, studies (study case folders, glob), hardware (Model tab).
+##   API regression suite (#35): covers (public calls, e.g. "spin.pwm.setDutyCycle"), depth (effect | signal |
+##   accuracy), tier and target_tier (build-only | per-PR | nightly | supervised: where it runs now, and where it
+##   goes once its wiring is switchable, #16), known_failure {issue, url, criteria} (fails on the baseline and on
+##   main: reported as known, does not fail the campaign; tests/common/make_record.py).
 ##   status is the implementation state (implemented | partial | planned | blocked); verdicts come
 ##   only from campaign results (tests/common/control_center.py).
 ## @return 1 if the catalogue is inconsistent.
@@ -20,6 +24,8 @@ REPO=Path(__file__).resolve().parents[2]
 CATALOGUE=REPO/'tests/catalogue.json'
 PROCEDURE=REPO/'docs/testing/test-procedure.md'
 STATUSES=('implemented','partial','planned','blocked')
+TIERS=('build-only','per-PR','nightly','supervised')
+DEPTHS=('effect','signal','accuracy')
 STATUS_TEXT={'implemented':'Implemented','partial':'Partly implemented','planned':'Planned','blocked':'Blocked'}
 ID=re.compile(r'^(L[012]|D)-[A-Z]{3}-\d\d$')  # L2: on the board (bench); D: averaged-model design tests (ADR 0004)
 
@@ -38,6 +44,14 @@ def load():
         if t.get('status') not in STATUSES:errors.append(f'{i}: status must be one of {STATUSES}')
         if t.get('level')!=i.split('-')[0]:errors.append(f'{i}: level does not match the ID')
         if not t.get('title'):errors.append(f'{i}: no title')
+        for k in ('tier','target_tier'):
+            if k in t and t[k] not in TIERS:errors.append(f'{i}: {k} must be one of {TIERS}')
+        if 'depth' in t and t['depth'] not in DEPTHS:errors.append(f'{i}: depth must be one of {DEPTHS}')
+        if 'covers' in t and not (isinstance(t['covers'],list) and all(isinstance(c,str) and c for c in t['covers'])):
+            errors.append(f'{i}: covers must be a list of call names')
+        k=t.get('known_failure')
+        if k is not None and not (isinstance(k,dict) and re.match(r'^(\S+)?#\d+$',k.get('issue',''))):
+            errors.append(f'{i}: known_failure needs an issue like #8')
     if errors:raise ValueError('\n'.join(errors))
     cat['by_id']={t['id']:t for t in cat['tests']}
     return cat
