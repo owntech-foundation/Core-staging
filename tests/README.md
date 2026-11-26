@@ -38,6 +38,9 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`firmware/`](firmware/) | Test firmware environments ([`pio_tests.ini`](firmware/pio_tests.ini)) and their app folders, built with `OWNTECH_APP_DIR` |
 | [`l0/framework_selftest/`](l0/framework_selftest/README.md) | L0-FWK: the framework checks itself, without hardware |
 | [`l0/target_smoke/`](l0/target_smoke/README.md) | L0-TGT: build → flash → SWD read on a Spin through an ST-Link |
+| [`l0/target_critical_task/`](l0/target_critical_task/README.md) | L0-CTK: `createCritical()` refuses periods its source cannot produce and runs accepted ones at their period (Core#174) |
+| [`l0/target_dac/`](l0/target_dac/README.md) | L0-DAC: the analog communication bus's DAC (Core#168) at commanded levels, on-chip and on the SPOC scope |
+| [`l0/target_data_dispatch/`](l0/target_data_dispatch/README.md) | L0-ADD: ADC data dispatch under a critical task, on the chip (Core#161, #162, #173, #175) |
 | [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`runner/`](runner/README.md) | The self-hosted runner that runs campaigns on the SPOC bench for pull requests: setup, hook, udev rules |
 | [`catalogue.json`](catalogue.json) | Every test, defined once |

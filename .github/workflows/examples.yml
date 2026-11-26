@@ -1,0 +1,55 @@
+# Build every example of owntech-foundation/examples against this Core (GitHub-hosted, no bench).
+# Catches API compile breaks and Kconfig or device-tree errors in code the SPOC campaign never builds.
+name: Build examples
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'tests/**'
+      - '**.md'
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'tests/**'
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      examples_ref:
+        description: 'owntech-foundation/examples branch, tag or SHA'
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: owntech-foundation/examples
+          ref: ${{ inputs.examples_ref || 'main' }}
+          path: .examples
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini', 'owntech/pio_extra.ini', 'west.yml') }}
+      - name: Install PlatformIO
+        run: python -m pip install -U platformio
+      - name: Build every example
+        run: tools/build_examples.sh .examples examples-build
+      - name: Summary
+        if: always()
+        run: cat examples-build/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: examples-build-logs
+          path: examples-build/
