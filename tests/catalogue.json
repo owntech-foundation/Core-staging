@@ -698,6 +698,84 @@
    "id": "L0-SAF-03",
    "title": "Safety error thread reports the channel that tripped (Core-staging#47)",
    "criterion": "first error block printed after one channel's minimum threshold is set above any reading: that channel true, the five others false; for I1, V1, I2, V2, Ihigh, Vhigh (.a-.f)"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-00",
+   "title": "HRTIM re-init test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_hrtim_reinit exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-01",
+   "title": "HRTIM re-init test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e HRI -t upload` exits 0"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-02",
+   "title": "An up-down unit's period is half the master period at its first init",
+   "criterion": "PERxR(A) = MPER / 2 ±1"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-03",
+   "title": "An up-down unit switches at its set frequency at its first init",
+   "criterion": "PA8: FREQuency, median of 5 = 200 kHz ±1 %"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-04",
+   "title": "An up-down unit initialised again keeps its period (Core#172)",
+   "criterion": "re-init 1 to 10 (.01-.10): initUnit(PWMA) returns within 2 s and PERxR(A) equals its boot value"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-05",
+   "title": "An up-down unit initialised again keeps its switching frequency (Core#172)",
+   "criterion": "re-init 1 to 10 (.01-.10): PA8 FREQuency, median of 5 = 200 kHz ±1 %"
+  },
+  {
+   "tab": "bench",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-06",
+   "title": "Where the firmware stopped when a re-init did not return",
+   "criterion": "INFO, reported only when a re-init is not acknowledged (before Core#172's fix: the period assert)"
   }
  ]
 }
