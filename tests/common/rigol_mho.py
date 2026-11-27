@@ -284,23 +284,30 @@ class RigolScope:
             return None
         return None if abs(value) >= INVALID_MEASUREMENT else value
 
-    def measure_series(self, item, channel, n=5, wait_s=0.5, channel2=None):
-        """Read a measurement n times while the scope runs.
+    def measure_series(self, item, channel, n=5, wait_s=0.5, channel2=None, tries=None):
+        """Read a measurement while the scope runs until n readings are valid.
 
-        Returns {"median", "min", "max", "n"}, or None if any reading is
-        invalid. A verdict uses the median and checks the spread (max - min)
-        against its own tolerance: one reading alone can be off."""
-        values = []
-        for _ in range(n):
+        The scope now and then answers one reading as invalid (about one
+        series in a hundred on the SPOC bench) with the signal fine: those
+        readings are skipped, up to `tries` readings in all (default 2 n).
+        Returns {"median", "min", "max", "n", "invalid"}, or None with fewer
+        than n valid readings. A verdict uses the median and checks the spread
+        (max - min) against its own tolerance: one reading alone can be off."""
+        tries = 2 * n if tries is None else tries
+        values, invalid = [], 0
+        while len(values) < n and len(values) + invalid < tries:
             time.sleep(wait_s)
             value = self.measure(item, channel, channel2)
             if value is None:
-                return None
-            values.append(value)
+                invalid += 1
+            else:
+                values.append(value)
+        if len(values) < n:
+            return None
         values.sort()
         mid = n // 2
         median = values[mid] if n % 2 else (values[mid - 1] + values[mid]) / 2
-        return {"median": median, "min": values[0], "max": values[-1], "n": n}
+        return {"median": median, "min": values[0], "max": values[-1], "n": n, "invalid": invalid}
 
     def screenshot(self):
         """PNG of the screen as bytes (None if the scope refuses)."""
