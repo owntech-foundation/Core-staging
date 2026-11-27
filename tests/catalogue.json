@@ -918,7 +918,7 @@
    "tier": "per-PR",
    "target_tier": "per-PR",
    "known_failure": {
-    "issue": "#38",
+    "issue": "#60",
     "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
     "criteria": [
      "L0-PWM-03.d",
@@ -926,7 +926,7 @@
      "L0-PWM-03.f",
      "L0-PWM-03.g"
     ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
    }
   },
   {
@@ -1045,7 +1045,7 @@
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PWM-10",
-   "title": "setPhaseShift(PWMA, ...): what it does (question from #38)",
+   "title": "setPhaseShift(PWMA, ...): what it does (fix: Core-staging#61)",
    "criterion": "INFO: RSTAR, master compares and the PA8/PB12 phase before and after setPhaseShift(PWMA, 90) and (PWMA, 288), then after setFrequency",
    "covers": [
     "spin.pwm.setPhaseShift"
@@ -1098,12 +1098,12 @@
    "tier": "per-PR",
    "target_tier": "per-PR",
    "known_failure": {
-    "issue": "#38",
+    "issue": "#60",
     "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
     "criteria": [
      "L0-PWM-12.e"
     ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
    }
   },
   {
@@ -1256,12 +1256,12 @@
    "tier": "per-PR",
    "target_tier": "per-PR",
    "known_failure": {
-    "issue": "#38",
+    "issue": "#60",
     "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
     "criteria": [
      "L0-PWM-19.b"
     ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket proposed in #38 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
    }
   },
   {
