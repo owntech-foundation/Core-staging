@@ -196,7 +196,7 @@ Varying the duty cycle is how to vary the output of the PWM.
 ### Phase Shift
 
 !!! tip
-    PWMA is defined as the phase reference. It can not be phase shifted.
+    PWMA is defined as the phase reference. It can not be phase shifted: `setPhaseShift(PWMA, ...)` is ignored.
     If you are not using PWMA, you can define any PWM channel as the reference by setting its phase shift to 0°
     NB: Phase reference is 0°.
 
@@ -218,7 +218,7 @@ Varying the duty cycle is how to vary the output of the PWM.
     ![phase_shift_how_it_works](images/phase_shift_with_carriers.svg){ width=800 }
 
     ```c++
-        spin.pwm.setPhaseShift(PWMA,  288);
+        spin.pwm.setPhaseShift(PWMC,  288);
     ```
 
 ### Dead Time

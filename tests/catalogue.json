@@ -1052,17 +1052,7 @@
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#61",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/61",
-    "criteria": [
-     "L0-PWM-10.a",
-     "L0-PWM-10.b",
-     "L0-PWM-10.c"
-    ],
-    "note": "setPhaseShift(PWMA, ...) clears RSTAR.MSTPER before the fix (Core-staging#61)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",

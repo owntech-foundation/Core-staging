@@ -1099,6 +1099,14 @@ inline void hrtim_duty_cycle_set(hrtim_tu_number_t tu_number, uint16_t value)
 
 void hrtim_phase_shift_set(hrtim_tu_number_t tu_number, uint16_t shift)
 {
+    /* Timer A is the phase reference: it cannot be phase shifted.
+       Leave its reset source (master period) untouched. */
+    if (tu_channel[tu_number]->pwm_conf.pwm_tu == TIMA)
+    {
+        tu_channel[tu_number]->phase_shift.value = 0;
+        return;
+    }
+
     tu_channel[tu_number]->phase_shift.value = shift;
 
     hrtim_tu_t local_tu = tu_channel[tu_number]->pwm_conf.pwm_tu;
