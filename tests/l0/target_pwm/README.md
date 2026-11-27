@@ -41,8 +41,8 @@ ns-level pulses are not, and run supervised on hand-held probes until [#16](http
   `setDutyCycle` must leave pulses already started unchanged and give the new width to the first period that starts
   after the call (preload on the period); `stopDualOutput` must take PA8 low within 1 µs; `startDualOutput` must switch
   within a period. Latencies and the call's DWT cycles are recorded (timing is INFO until a reference run, #35).
-- **L0-PWM-10** answers the question in [#38's comment](https://github.com/owntech-foundation/Core-staging/issues/38):
-  what `setPhaseShift(PWMA, …)` does (registers and pins). INFO.
+- **L0-PWM-10**: `setPhaseShift(PWMA, …)` must leave timer A untouched, since PWMA is the phase reference. Before
+  [#61](https://github.com/owntech-foundation/Core-staging/issues/61) it cleared `RSTAR.MSTPER`.
 - **L0-PWM-15/16**: Core#166/#167 low-duty reversal ([#8](https://github.com/owntech-foundation/Core-staging/issues/8)):
   duty in (0, 0.0025) and near 1 on an up-down PWMx2 unit (the Core#166 boost case) and an up-down PWMx1 unit.
 - **Core#172** (an up-down unit doubles its frequency at each re-init) is [L0-HRI](../target_hrtim_reinit/README.md),

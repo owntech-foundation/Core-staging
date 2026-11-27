@@ -81,7 +81,7 @@ CASES = [
     ('L0-PWM-07', 'stopDualOutput, startSingleOutput, stopSingleOutput'),
     ('L0-PWM-08', 'setFrequency after initUnit: period, duty kept, frequency on the pin'),
     ('L0-PWM-09', 'setPhaseShift on PWMB and PWMC: reset source, compare, phase on the pins'),
-    ('L0-PWM-10', 'setPhaseShift(PWMA, ...): what it does (question from #38)'),
+    ('L0-PWM-10', 'setPhaseShift(PWMA, ...) leaves timer A untouched (Core-staging#61)'),
     ('L0-PWM-11', 'ADC trigger calls: routing, postscaler, instant, enable/disable'),
     ('L0-PWM-12', 'period event: repetition, callback rate, disable'),
     ('L0-PWM-13', 'burst mode: init, set, start, stop, deinit'),
@@ -424,7 +424,7 @@ def p1(b, sc):
     good &= adc_cases(b)
     good &= burst_cases(b, hi)
     good &= period_event_master(b)
-    pwma_phase_question(b, sc)
+    good &= pwma_phase_cases(b, sc)
     good &= period_event_tima(b)
     return good
 
@@ -540,23 +540,34 @@ def phase_cases(b, sc, hi):
     return good
 
 
-def pwma_phase_question(b, sc):
-    """#38's question: spin_pwm.md says PWMA cannot be phase shifted, yet its example calls setPhaseShift(PWMA, 288).
-    Recorded (INFO), not judged: the finding goes to the docs-or-code decision."""
+def pwma_phase_cases(b, sc):
+    """setPhaseShift(PWMA, ...) must leave timer A alone: PWMA is the phase reference (spin_pwm.md).
+    Before Core-staging#61 it cleared RSTAR.MSTPER, so timer A stopped resetting on the master period."""
     cid = 'L0-PWM-10'
+    good = True
     _, r0 = b.step('SAMPLE')
+    rst0 = r0.t(A, 'RST')
     p0 = phase(sc.capture('PA8', 'PB12', periods=4))
     for k, deg in enumerate((90, 288)):
         rep, r = b.step('PHASE', A, deg)
         p = phase(sc.capture('PA8', 'PB12', periods=4))
-        line(f'{cid}.{"ab"[k]}', 'INFO', f'setPhaseShift(PWMA, {deg}): registers and PB12 (PWMC, 0°) vs PA8',
-             'recorded', f"RSTAR {r0.t(A, 'RST'):#x} -> {r.t(A, 'RST'):#x}; MCMP1-4 "
-             f"{[r.m(f'MCMP{i}') for i in range(1, 5)]}; CMP2AR {r.t(A, 'CMP2')}; phase "
-             f"{'?' if p0 is None else f'{p0:.1f}'}° before -> {'?' if p is None else f'{p:.1f}'}° after")
+        err = phase_err(p, 0.0)
+        good &= line(f'{cid}.{"ab"[k]}', r.t(A, 'RST') == rst0 and rst0 >> 4 & 1
+                     and err is not None and abs(err) <= PHASE_TOL_DEG,
+                     f'setPhaseShift(PWMA, {deg}) leaves timer A untouched: still reset on the master period, '
+                     'PA8 in phase with PB12 (PWMC, 0°)',
+                     f'RSTAR unchanged, MSTPER 1; 0° ±{PHASE_TOL_DEG}°',
+                     f"RSTAR {rst0:#x} -> {r.t(A, 'RST'):#x}; MCMP1-4 {[r.m(f'MCMP{i}') for i in range(1, 5)]}; "
+                     f"CMP2AR {r.t(A, 'CMP2')}; phase {'?' if p0 is None else f'{p0:.1f}'}° before -> "
+                     f"{'?' if p is None else f'{p:.1f}'}° after")
     rep, r = b.step('SET_FREQUENCY', 200000)
     p = phase(sc.capture('PA8', 'PB12', periods=4))
-    line(f'{cid}.c', 'INFO', 'after setPhaseShift(PWMA, ...), setFrequency(200 kHz): PWMA still aligned with PWMC?',
-         'recorded', f"RSTAR {r.t(A, 'RST'):#x}; phase {'?' if p is None else f'{p:.1f}'}°")
+    err = phase_err(p, 0.0)
+    good &= line(f'{cid}.c', r.t(A, 'RST') >> 4 & 1 and err is not None and abs(err) <= PHASE_TOL_DEG,
+                 'then setFrequency(200 kHz): timer A still reset on the master period, PA8 in phase with PB12',
+                 f'RSTAR.MSTPER 1; 0° ±{PHASE_TOL_DEG}°',
+                 f"RSTAR {r.t(A, 'RST'):#x}; phase {'?' if p is None else f'{p:.1f}'}°")
+    return good
 
 
 def adc_cases(b):

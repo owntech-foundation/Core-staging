@@ -1045,14 +1045,24 @@
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PWM-10",
-   "title": "setPhaseShift(PWMA, ...): what it does (fix: Core-staging#61)",
-   "criterion": "INFO: RSTAR, master compares and the PA8/PB12 phase before and after setPhaseShift(PWMA, 90) and (PWMA, 288), then after setFrequency",
+   "title": "setPhaseShift(PWMA, ...) leaves timer A untouched (fix: Core-staging#61)",
+   "criterion": "RSTAR unchanged with MSTPER set and PA8 in phase with PB12 (PWMC, 0°) within 2° after setPhaseShift(PWMA, 90) and (PWMA, 288), then after setFrequency(200 kHz)",
    "covers": [
     "spin.pwm.setPhaseShift"
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#61",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/61",
+    "criteria": [
+     "L0-PWM-10.a",
+     "L0-PWM-10.b",
+     "L0-PWM-10.c"
+    ],
+    "note": "setPhaseShift(PWMA, ...) clears RSTAR.MSTPER before the fix (Core-staging#61)"
+   }
   },
   {
    "tab": "pwm",
