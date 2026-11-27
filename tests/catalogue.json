@@ -564,6 +564,95 @@
    "id": "L0-TIM-06",
    "title": "Critical-task marker on PA6 seen on the scope",
    "criterion": "Planned: period and pulse width of the PA6 marker on the MHO984 (BLOCKED: needs scope)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-00",
+   "title": "Pin-to-ADC test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_data_pins exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-01",
+   "title": "Pin-to-ADC test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e PAD -t upload` exits 0"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-02",
+   "title": "enableAcquisition(pin) accepts exactly the ADC-capable Spin pins",
+   "criterion": "Returns 0 on the 24 ADC-capable pins (1, 2, 4, 5, 6, 12, 14, 24-27, 29-32, 34, 35, 37, 42-45, 51, 52), -1 on the others (Core-staging#50)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-03",
+   "title": "Each ADC-capable pin converts on its lowest-numbered ADC, at its own channel",
+   "criterion": "The ADC SQR sequences hold exactly the lowest-ADC ADCx_INy of each pin, per the STM32G474 pin map (Core-staging#50)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-04",
+   "title": "A value arrives on every ADC-capable pin through its default ADC",
+   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins, NO_VALUE on the others; floating pins: any value (Core-staging#50: pin 1)"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-05",
+   "title": "enableAcquisition(pin, adc) accepts exactly the (pin, ADC) pairs the chip wires",
+   "criterion": "Returns 0 on the 36 pairs of the STM32G474 pin map, -1 on every other pin/ADC pair"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-06",
+   "title": "Each accepted (pin, ADC) pair converts its own channel",
+   "criterion": "Rank k of ADC n (SQR registers) is the channel of the k-th pin accepted on ADC n"
+  },
+  {
+   "tab": "target",
+   "level": "L0",
+   "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
+   "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PAD-07",
+   "title": "A value arrives on every ADC-capable pin through the last ADC it was enabled on",
+   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins after enabling every pair"
   }
  ]
 }
