@@ -123,11 +123,15 @@ def target_snapshot(idn):
 def fmt(s, unit='', scale=1.0, digits=4):
     if s is None:
         return 'invalid'
+    skipped = 0
     if isinstance(s, dict):
+        skipped = s.get('invalid', 0)
         s = (s['median'], s['min'], s['max'])
     text = f'{s[0] * scale:.{digits}g} {unit} (min {s[1] * scale:.{digits}g}, max {s[2] * scale:.{digits}g}'
     if len(s) > 3:
         text += f'; {s[3]} valid of {s[4]} captures'
+    if skipped:
+        text += f'; {skipped} invalid reading{"s" if skipped > 1 else ""} skipped'
     return (text + ')').replace('  ', ' ')
 
 
@@ -176,7 +180,9 @@ def main():
         line(f'L0-CAL-05.{L}', judge(ok), f'CH{ch} amplitude VTOP - VBASe (×10 probe setting)',
              f'{V_HIGH} V ±{AMP_TOL:.0%}, level spread <= {LEVEL_SPREAD * 1e3:.0f} mV',
              'invalid' if amp is None else f'{amp:.3f} V (VTOP {top["median"]:.3f}, VBASe {base["median"]:.3f}, '
-                                           f'spread {spread * 1e3:.0f} mV)')
+                                           f'spread {spread * 1e3:.0f} mV'
+                                           + (f'; {k} invalid skipped' if (k := top.get('invalid', 0)
+                                                                            + base.get('invalid', 0)) else '') + ')')
         c['amplitude_V'] = amp
         if ch == 1:
             amp1 = amp
