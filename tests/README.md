@@ -44,6 +44,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`l0/target_data_dispatch/`](l0/target_data_dispatch/README.md) | L0-ADD: ADC data dispatch under a critical task, on the chip (Core#161, #162, #173, #175) |
 | [`l0/target_timing/`](l0/target_timing/README.md) | L0-TIM: cycles per call of the Core API hot-path calls and critical-task timing, on the chip; reference run on `main` and `pre-zephyr-4.4` (Core-staging#37) |
 | [`l0/target_data_pins/`](l0/target_data_pins/README.md) | L0-PAD: DataAPI pin-to-ADC resolution on every Spin pin, on the chip (Core-staging#50) |
+| [`l0/target_safety_report/`](l0/target_safety_report/README.md) | L0-SAF: the Safety error thread reports the channel that tripped, and only it (Core-staging#47), on the chip |
 | [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`runner/`](runner/README.md) | The self-hosted runner that runs campaigns on the SPOC bench for pull requests: setup, hook, udev rules |
 | [`catalogue.json`](catalogue.json) | Every test, defined once |

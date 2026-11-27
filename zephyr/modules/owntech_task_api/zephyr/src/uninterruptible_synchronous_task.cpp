@@ -91,7 +91,7 @@ void thread_error(void *, void *, void *)
 						, safety.getChannelError(I1_LOW) ? "true" : "false"
 						, safety.getChannelError(V1_LOW) ? "true" : "false"
 						, safety.getChannelError(I2_LOW) ? "true" : "false"
-						, safety.getChannelError(I2_LOW) ? "true" : "false"
+						, safety.getChannelError(V2_LOW) ? "true" : "false"
 						, safety.getChannelError(I_HIGH) ? "true" : "false"
 						, safety.getChannelError(V_HIGH) ? "true" : "false"
 						);
