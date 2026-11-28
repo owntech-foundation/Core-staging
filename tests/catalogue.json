@@ -42,6 +42,15 @@
     "One firmware for the module (env PWM, tests/firmware/pwm): the host commands steps over SWD and judges the HRTIM registers it reads itself, the pins sampled on the chip and the scope through the SPOC MUX (CH1 and CH4, the two independent nodes, #5). On-target: `tests/run_all.sh --l0 --target`. Supervised rows (hand-held probes until #16) need `--supervised` and run only on Luiz's computer.",
     "Known failures (catalogue `known_failure`) fail on main and on the baseline: reported as known, they do not fail the campaign (#35). L0-HRI (Core#172) belongs to this module."
    ]
+  },
+  {
+   "id": "io",
+   "title": "IO",
+   "question": "Does every spin.gpio, spin.led, spin.dac, spin.comp, spin.timer and spin.uart call do what its documentation says, on the registers, on the pins and on the scope? (API regression suite, Core-staging#35/#40)",
+   "notes": [
+    "One firmware for the module (env IO, tests/firmware/io): the host commands steps over SWD and judges the registers it reads itself and the scope through the SPOC MUX (CH1). On-target: `tests/run_all.sh --l0 --target`. L0-DAC (communication.analog, Core#168) is folded in under its IDs L0-DAC-03..06.",
+    "Loopback rows (readPin, UART TX->RX, encoder count, comparator: L0-IOM-20..23) need wires between CUT pins: supervised with hand-held wires (`--supervised`, Luiz's computer) until #16's switchable wires exist; they BLOCK unattended. Gap rows (status Blocked) list what the bench cannot check, with the reason."
+   ]
   }
  ],
  "tests": [
@@ -330,82 +339,66 @@
    "criterion": "INFO, reported only when an out-of-range period is accepted (before Core#174's fix)"
   },
   {
-   "tab": "bench",
+   "tab": "io",
    "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
-   "status": "implemented",
-   "harness": "tests/run_all.sh --l0 --target",
-   "id": "L0-DAC-00",
-   "title": "DAC test failure before a reported criterion must fail the campaign",
-   "criterion": "Reported only when target_dac exits non-zero without reporting a FAIL itself.",
-   "reports_only_failures": true
-  },
-  {
-   "tab": "bench",
-   "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
-   "status": "implemented",
-   "harness": "tests/run_all.sh --l0 --target",
-   "id": "L0-DAC-01",
-   "title": "DAC test firmware builds and flashes over the ST-Link",
-   "criterion": "`pio run -e DAC -t upload` exits 0"
-  },
-  {
-   "tab": "bench",
-   "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
-   "status": "implemented",
-   "harness": "tests/run_all.sh --l0 --target",
-   "id": "L0-DAC-02",
-   "title": "DAC report struct read over SWD",
-   "criterion": "magic 0x44414331, layout 1, within 30 s of the upload"
-  },
-  {
-   "tab": "bench",
-   "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1; profile P4: communication.analog.init(), then setAnalogCommValue() levels on PA6 (0.5 V/div)",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-DAC-03",
    "title": "Analog bus DAC (Core#168): output register follows setAnalogCommValue()",
-   "criterion": "DAC2 DOR1 reads the commanded level over SWD, at 512, 1024, 2048, 3072, 3584 (.a-.e)"
+   "criterion": "DAC2 DOR1 reads the commanded level over SWD, at 512, 1024, 2048, 3072, 3584 (.a-.e)",
+   "covers": [
+    "communication.analog.init",
+    "communication.analog.setAnalogCommValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "io",
    "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1; profile P4: communication.analog.init(), then setAnalogCommValue() levels on PA6 (0.5 V/div)",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-DAC-04",
    "title": "Analog bus DAC (Core#168): PA6 voltage at each level",
-   "criterion": "median of 5 VAVG on CH1 = n × 2.048 V / 4096 (VREFBUF) ±(30 mV + 3 %), at 512, 1024, 2048, 3072, 3584 (.a-.e)"
+   "criterion": "median of 5 VAVG on CH1 = n × 2.048 V / 4096 (VREFBUF) ±(30 mV + 3 %), at 512, 1024, 2048, 3072, 3584 (.a-.e)",
+   "covers": [
+    "communication.analog.init",
+    "communication.analog.setAnalogCommValue"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "io",
    "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1; profile P4: communication.analog.init(), then setAnalogCommValue() levels on PA6 (0.5 V/div)",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-DAC-05",
    "title": "PA6 voltage at level 0",
-   "criterion": "INFO: below the output buffer's linear range"
+   "criterion": "INFO: below the output buffer's linear range",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "io",
    "level": "L0",
-   "conditions": "SPOC bench: CUT flashed with env DAC (tests/firmware/dac, shield config twist, no PWM); MUX routes PA6 (mux1 input 6) to CH1; MHO984 0.5 V/div, ×10",
-   "source": "`tests/l0/target_dac/run.py`, `tests/firmware/dac/main.cpp`",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1; profile P4: communication.analog.init(), then setAnalogCommValue() levels on PA6 (0.5 V/div)",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
    "status": "implemented",
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-DAC-06",
    "title": "DAC full scale and offset",
-   "criterion": "INFO: least-squares fit of PA6 voltage against level"
+   "criterion": "INFO: least-squares fit of PA6 voltage against level",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "target",
@@ -1285,6 +1278,487 @@
    "criterion": "INFO: seconds from flash to the last profile, and steps run",
    "tier": "per-PR",
    "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-00",
+   "title": "IO test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_io exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-01",
+   "title": "env IO builds, flashes and answers its steps over SWD",
+   "criterion": "`pio run -e IO -t upload` exits 0; the report reaches magic IOM1 (replaces L0-DAC-01/02: one flash for the module)",
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-02",
+   "title": "Boot state: VREFBUF at 2.048 V, DAC2 channel 1 at 2048 on its pin (relied-on behaviour R1, R2)",
+   "criterion": ".a VREFBUF CSR: ENVR 1, HIZ 0, VRS 00 (2.048 V), VRR 1; .b DAC2: EN1 1, MODE1 000, DOR1 2048, before main() touches anything",
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-03",
+   "title": "Spin pin numbers: configurePin/setPin/resetPin drive the MCU pin of the Spin pinout, and no other",
+   "criterion": ".a for every Spin GPIO pin number but 46/47 (SWD): MODER 01, ODR 1 after setPin, 0 after resetPin, on the MCU pin of the Spin pinout; .b no other ODR bit changes; .c pin numbers with no GPIO change nothing",
+   "covers": [
+    "spin.gpio.configurePin",
+    "spin.gpio.setPin",
+    "spin.gpio.resetPin"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-04",
+   "title": "STM32 pin names: configurePin modes, setPin/resetPin/togglePin/writePin, readPin, on the chip",
+   "criterion": ".a on PA7, PB2, PC12, PD2: OUTPUT MODER 01; ODR=IDR 1 after setPin, 0 after resetPin; togglePin 1 then 0; writePin 1 then 0; readPin on the output 1 then 0. .b PC13: INPUT MODER 00 PUPDR 00, INPUT_PULLUP PUPDR 01, readPin 1 (unconnected, pulled up)",
+   "covers": [
+    "spin.gpio.configurePin",
+    "spin.gpio.setPin",
+    "spin.gpio.resetPin",
+    "spin.gpio.togglePin",
+    "spin.gpio.writePin",
+    "spin.gpio.readPin"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-05",
+   "title": "GPIO levels on the scope, one pin per port",
+   "criterion": "PA7, PB2, PC12, PD2 through the MUX on CH1 (VAVG): setPin, resetPin, writePin(1), togglePin, togglePin, writePin(0) give high >= 2.8 V, low <= 0.4 V in that order",
+   "covers": [
+    "spin.gpio.setPin",
+    "spin.gpio.resetPin",
+    "spin.gpio.writePin",
+    "spin.gpio.togglePin"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-06",
+   "title": "LED: turnOn/turnOff/toggle drive PA5 (led0)",
+   "criterion": "turnOff (first call, lazy init), turnOn, toggle, toggle, turnOff: PA5 MODER 01, ODR 0, 1, 0, 1, 0",
+   "covers": [
+    "spin.led.turnOn",
+    "spin.led.turnOff",
+    "spin.led.toggle"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-07",
+   "title": "LED level on the scope (PA5)",
+   "criterion": "turnOn, turnOff, toggle, toggle: PA5 on CH1 high >= 2.8 V / low <= 0.4 V",
+   "covers": [
+    "spin.led.turnOn",
+    "spin.led.turnOff",
+    "spin.led.toggle"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-08",
+   "title": "spin.dac initConstValue/setConstValue: DAC1, DAC2, DAC3 registers",
+   "criterion": ".a-.c for DAC 1, 2, 3: EN1 1, WAVE1 00, TEN1 0, DOR1 0 after init, then 1234 and 3000 after setConstValue(n, 1, ...); MODE1 000 on DAC1/DAC2. .d DAC3 MODE1 INFO",
+   "covers": [
+    "spin.dac.initConstValue",
+    "spin.dac.setConstValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-09",
+   "title": "spin.dac setConstValue on PA4 (DAC1 OUT1) on the scope",
+   "criterion": "median of 5 VAVG on CH1 = n x 2.048 V / 4096 ±(30 mV + 3 %) at n = 1024, 2048, 3072 (L0-DAC tolerance)",
+   "covers": [
+    "spin.dac.setConstValue",
+    "spin.dac.initConstValue"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-10",
+   "title": "spin.dac currentModeInit/slopeCompensation: sawtooth registers",
+   "criterion": "On a fresh boot (DAC1/DAC3 still disabled: RM0440 lets MCR.MODE change only while the channel is off). .a/.c currentModeInit(1, TIMA) / (3, TIMB): EN1 1, WAVE1 11, STDIR1 0 (decrement), MODE1 001 (DAC1, pin + on-chip) / 011 (DAC3, on-chip); .b/.d slopeCompensation(1, 1.5, 0.5) / (3, 2.0, 1.0): STRSTDATA1 = peak x 4096 / 2.048, STINCDATA1 > 0 (steps INFO); trigger selection INFO",
+   "covers": [
+    "spin.dac.currentModeInit",
+    "spin.dac.slopeCompensation"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#40",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/40",
+    "criteria": [
+     "L0-IOM-10.b",
+     "L0-IOM-10.d"
+    ],
+    "note": "slopeCompensation truncates the reset code: (uint32_t)(4096U * set_voltage) / VREF with VREF 2.048f gives 2999 for 1.5 V and 3999 for 2.0 V (1 LSB low); round instead of truncate"
+   }
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-11",
+   "title": "spin.comp initialize: COMP1 and COMP3 registers",
+   "criterion": ".a initialize(1): COMP1 EN 1, INMSEL 100 (DAC3 CH1), INPSEL 0 (PA1), POL/HYST/BLANKSEL 0, PA1 analog; .b initialize(3): COMP3 INMSEL 101 (DAC1 CH1), INPSEL 1 (PC1), PC1 analog; .c initialize(2) touches no comparator (RM0440 encodings)",
+   "covers": [
+    "spin.comp.initialize"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-12",
+   "title": "spin.timer encoder: TIM4/TIM3 in encoder mode, getIncrementalEncoderValue",
+   "criterion": ".a/.c startLogIncrementalEncoder(TIMER4 / TIMER3): CEN 1, SMS 0011, CC1S = CC2S = 01, PB6/PB7 (PC6/PC7) AF with pull-up; .b/.d getIncrementalEncoderValue 0 before the start, the TIM CNT after (no edges on a bare CUT)",
+   "covers": [
+    "spin.timer.startLogIncrementalEncoder",
+    "spin.timer.getIncrementalEncoderValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-13",
+   "title": "spin.uart usart1Init registers; usart1ReadChar with nothing received",
+   "criterion": ".a USART1: UE, RE, TE, RXNEIE 1; 8 bits, no parity, 1 stop; 170 MHz / BRR = 9600 baud ±1 %. .b usart1ReadChar returns 'x' (UartHAL.h) with RX idle",
+   "covers": [
+    "spin.uart.usart1Init",
+    "spin.uart.usart1ReadChar"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-14",
+   "title": "usart1WriteChar: frame on PB6 (TX) on the scope",
+   "criterion": ".a 2000 x 'U' (0x55): PB6 on CH1 is a 4800 Hz ±1 % square wave, duty 0.50 ±0.05 (9600 baud, frames back to back). .b INFO: PB7 (RX) on the scope during the same burst; .c INFO: usart1ReadChar and USART1 ISR after it (shows whether RX really heard TX)",
+   "covers": [
+    "spin.uart.usart1WriteChar"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-15",
+   "title": "usart1SwapRxTx swaps USART1's TX and RX",
+   "criterion": "USART1 CR2.SWAP 1; during a usart1WriteChar('U') burst PB6 stays flat (TX moved). PB7 and LPUART1 SWAP recorded: on the SPOC the MUX route to PB7 shows PB6's signal (L0-IOM-14.b/.c), so PB7 is not judged",
+   "covers": [
+    "spin.uart.usart1SwapRxTx",
+    "spin.uart.usart1WriteChar"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#40",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/40",
+    "criteria": [
+     "L0-IOM-15"
+    ],
+    "note": "usart1SwapRxTx sets SWAP on LPUART1 (PA2/PA3), not on USART1 that usart1Init/ReadChar/WriteChar drive (UartHAL.cpp); TX stays on PB6. The O2 boot hook _swap_usart1_tx_rx (hardware_auto_configuration.cpp) has the same mismatch"
+   }
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-IOM-20",
+   "title": "SUPERVISED loopback: readPin follows a driven input",
+   "criterion": "Wire W1 PC12 (Spin 19) - PC13 (22): readPin(PC13, INPUT) = 1, 0, 1, 0 while PC12 is set, reset, written 1, toggled; 0 with INPUT_PULLUP and PC12 low. BLOCKED unattended: needs the switchable wires of #16",
+   "covers": [
+    "spin.gpio.readPin",
+    "spin.gpio.configurePin"
+   ],
+   "depth": "signal",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-IOM-21",
+   "title": "SUPERVISED loopback: UART TX -> RX, usart1ReadChar",
+   "criterion": "Wire W2 PB6 (55) - PB7 (56): after usart1WriteChar('A'), ('z') usart1ReadChar returns 'A', 'z', then 'x'. BLOCKED unattended: needs the switchable wires of #16",
+   "covers": [
+    "spin.uart.usart1ReadChar",
+    "spin.uart.usart1WriteChar"
+   ],
+   "depth": "signal",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-IOM-22",
+   "title": "SUPERVISED loopback: encoder count follows quadrature edges",
+   "criterion": "Wires W3 PB4 (20) - PC6 (7), W4 PA15 (48) - PC7 (9); TIM3 started; 100 quadrature cycles driven by GPIO, A leading then B leading: getIncrementalEncoderValue(TIMER3) moves by ±400, then back by the same amount. BLOCKED unattended: needs the switchable wires of #16",
+   "covers": [
+    "spin.timer.getIncrementalEncoderValue",
+    "spin.timer.startLogIncrementalEncoder"
+   ],
+   "depth": "signal",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-IOM-23",
+   "title": "SUPERVISED loopback: comparator output flips across its DAC threshold",
+   "criterion": "Wires W5 PA4 (45) - PA1 (30), W6 PA6 (34) - PC1 (25); minus input DAC at 2048 (1.024 V, currentModeInit then setConstValue); plus input DAC at 0.512, 1.536, 0.512 V: CSR VALUE 0, 1, 0 for COMP1 (.a) and COMP3 (.b). BLOCKED unattended: needs the switchable wires of #16",
+   "covers": [
+    "spin.comp.initialize",
+    "spin.dac.currentModeInit"
+   ],
+   "depth": "signal",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-IOM-24",
+   "title": "Module duration",
+   "criterion": "INFO: seconds from flash to the last profile, and steps run",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-30",
+   "title": "Gap: PA13/PA14 (Spin pins 46/47) as GPIO",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.gpio.configurePin",
+    "spin.gpio.setPin",
+    "spin.gpio.resetPin"
+   ],
+   "status_note": "SWD pins: driving them cuts the ST-Link the test reads through. Skipped by the pin sweep and never on the scope; checked only by a person with another debug path."
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-31",
+   "title": "Gap: GPIO names with no Spin pin or no MUX route (PA11, PA12, PC14, PC15, PD0, PD1, PD3)",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.gpio.configurePin",
+    "spin.gpio.setPin"
+   ],
+   "status_note": "PA11/PA12 are the USB lines (configuring them drops the CUT's USB link) and the MUX has no input for them; PC14/PC15 are not on the Spin header nor the MUX; PD0, PD1, PD3 do not exist on the STM32G474RE (LQFP64), although pin_t names them."
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-32",
+   "title": "Gap: DAC3 output on a pin",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.dac.initConstValue",
+    "spin.dac.setConstValue"
+   ],
+   "status_note": "DAC3 has no output pin on the STM32G474: initConstValue(3)/setConstValue(3, ...) are checked on the registers only (L0-IOM-08.c), and its level through COMP1 in L0-IOM-23.a (supervised)."
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-33",
+   "title": "Gap: comparator output on a pin",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.comp.initialize"
+   ],
+   "status_note": "CompHAL/comparator_driver configure no COMPx_OUT alternate function (PB8/PB15 are only named in comments), so the output reaches no pin: read as CSR VALUE over SWD (L0-IOM-23)."
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-34",
+   "title": "Gap: slope-compensation ramp on PA4 synchronised to the HRTIM",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.dac.slopeCompensation",
+    "spin.dac.currentModeInit"
+   ],
+   "status_note": "The sawtooth only moves on HRTIM reset/step triggers, i.e. with a PWM unit running in current mode: belongs with the current-mode checks of the PWM/Twist modules (nightly). Here registers only (L0-IOM-10)."
+  },
+  {
+   "tab": "io",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env IO (tests/firmware/io, a step executor over spin.gpio/led/dac/comp/timer/uart and communication.analog; shield config twist, usart1 on PB6/PB7); registers read over SWD; MUX routes one CUT pin to scope CH1",
+   "source": "`tests/l0/target_io/run.py`, `tests/firmware/io/main.cpp`",
+   "status": "blocked",
+   "harness": "-",
+   "id": "L0-IOM-35",
+   "title": "Gap: inputs on the scope (readPin, UART RX, encoder inputs, comparator inputs)",
+   "criterion": "Not tested: see the status note",
+   "covers": [
+    "spin.gpio.readPin",
+    "spin.uart.usart1ReadChar",
+    "spin.timer.getIncrementalEncoderValue",
+    "spin.comp.initialize"
+   ],
+   "status_note": "Inputs show nothing on the scope by themselves: they need a driven source, the loopbacks L0-IOM-20..23 (supervised until #16)."
   }
  ]
 }

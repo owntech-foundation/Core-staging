@@ -59,7 +59,7 @@ object_code() {
         target_smoke) echo TGT-00 ;;
         spoc_cal) echo CAL-01 ;;
         target_critical_task) echo CTK-00 ;;
-        target_dac) echo DAC-00 ;;
+        target_io) echo IOM-00 ;;
         target_data_dispatch) echo ADD-00 ;;
         target_timing) echo TIM-00 ;;
         target_data_pins) echo PAD-00 ;;

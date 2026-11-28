@@ -1,0 +1,13 @@
+/* L0-IOM (tests/l0/target_io): usart1 on PB6 (TX) / PB7 (RX), as the O2 shield wires it (the only shipped shield
+ * with usart1), so that spin.uart has a device. RX is pulled up so that an unconnected pin on the bare CUT idles high
+ * (no stray characters), as a connected transceiver would hold it. */
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pb6 &usart1_rx_pb7>;
+	pinctrl-names = "default";
+	current-speed = <115200>;
+	status = "okay";
+};
+
+&usart1_rx_pb7 {
+	bias-pull-up;
+};
