@@ -12,7 +12,7 @@ It checks every `spin.pwm` (PwmHAL) call, 46 of them, and is **the pattern later
   block over SWD (one OpenOCD session per step reads the report and the registers), the pins sampled on the chip, and the
   scope through the SPOC MUX. Profiles that need calls *before* `initUnit` start from a reset, not a new flash.
 - **Expected values from an independent source**: RM0440 (period = 32 × 170 MHz / f at CKPSC 0, dead-time step 735 ps,
-  compare ≥ 0x60), the PwmHAL.h documentation (184/368 ps, `UNKNOWN_ADC`, PWMx2 = duty on the low side), the docs' 27200
+  compare ≥ 0x60), the PwmHAL.h documentation (184/368 ps, the default ADC trigger routing, PWMx2 = duty on the low side), the docs' 27200
   ticks at 200 kHz; never the driver's own arithmetic.
 - **Depth** ([#35](https://github.com/owntech-foundation/Core-staging/issues/35#issuecomment-7196951762)): *effect* (registers, returns, pins
   on the chip) for every call; *signal* on the scope for outputs, frequency, phase and convention; *accuracy* only where a
