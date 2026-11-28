@@ -41,7 +41,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`l0/framework_selftest/`](l0/framework_selftest/README.md) | L0-FWK: the framework checks itself, without hardware |
 | [`l0/target_smoke/`](l0/target_smoke/README.md) | L0-TGT: build → flash → SWD read on a Spin through an ST-Link |
 | [`l0/target_critical_task/`](l0/target_critical_task/README.md) | L0-CTK: `createCritical()` refuses periods its source cannot produce and runs accepted ones at their period (Core#174) |
-| [`l0/target_dac/`](l0/target_dac/README.md) | L0-DAC: the analog communication bus's DAC (Core#168) at commanded levels, on-chip and on the SPOC scope |
+| [`l0/target_io/`](l0/target_io/README.md) | L0-IOM: the IO module of the API regression suite: `spin.gpio/led/dac/comp/timer/uart` at effect depth over SWD, GPIO/LED/DAC levels and the UART frame on the scope through the MUX, loopbacks supervised until #16 (Core-staging#40). Folds in L0-DAC (the analog bus DAC, Core#168) under its IDs |
 | [`l0/target_data_dispatch/`](l0/target_data_dispatch/README.md) | L0-ADD: ADC data dispatch under a critical task, on the chip (Core#161, #162, #173, #175) |
 | [`l0/target_timing/`](l0/target_timing/README.md) | L0-TIM: cycles per call of the Core API hot-path calls and critical-task timing, on the chip; reference run on `main` and `pre-zephyr-4.4` (Core-staging#37) |
 | [`l0/target_data_pins/`](l0/target_data_pins/README.md) | L0-PAD: DataAPI pin-to-ADC resolution on every Spin pin, on the chip (Core-staging#50) |
