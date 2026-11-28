@@ -28,11 +28,12 @@ It checks the 20 calls of `spin.gpio` (6), `spin.led` (3), `spin.dac` (4), `spin
 | P0 boot state | 02 | VREFBUF 2.048 V (R1), DAC2 at 2048 at boot (R2) | effect, per-PR |
 | P1 GPIO | 03, 04, 05 | every Spin pin number through `configurePin/setPin/resetPin` (right MCU pin, no other, non-GPIO numbers do nothing); STM32 names on one pin per port with all six calls; INPUT/INPUT_PULLUP; `readPin` on an output and on a pulled-up unconnected input; levels on the scope | effect + signal, per-PR |
 | P2 LED | 06, 07 | `turnOn/turnOff/toggle` (PA5 register and level) | effect + signal, per-PR |
-| P3 spin.dac | 08, 09, 10 | `initConstValue/setConstValue` on DAC1/2/3; PA4 voltage at 1024/2048/3072; `currentModeInit/slopeCompensation` sawtooth registers | effect + signal, per-PR |
+| P3 spin.dac | 08, 09 | `initConstValue/setConstValue` on DAC1/2/3; PA4 voltage at 1024/2048/3072 | effect + signal, per-PR |
+| P3b current mode | 10 | `currentModeInit/slopeCompensation` sawtooth registers, DAC1/DAC3 still disabled (MCR.MODE is writable only then) | effect, per-PR |
 | P4 analog bus (L0-DAC) | L0-DAC-03..06 | `communication.analog.init/setAnalogCommValue`: DAC2 DOR1 and PA6 voltage at 512…3584, ±(30 mV + 3 %) | effect + signal, per-PR |
 | P5 comparator | 11 | `initialize(1)`, `(3)`, `(2)` (CSR) | effect, per-PR |
 | P6 encoder timers | 12 | `startLogIncrementalEncoder/getIncrementalEncoderValue` on TIMER4, TIMER3 | effect, per-PR |
-| P7 UART | 13, 14, 15 | `usart1Init` registers, `usart1ReadChar` = `'x'`; `usart1WriteChar` frame on PB6 (4800 Hz square of `'U'`); `usart1SwapRxTx` | effect + signal, per-PR |
+| P7 UART | 13, 14, 15 | `usart1Init` registers, `usart1ReadChar` = `'x'`; `usart1WriteChar` frame on PB6 (4800 Hz square of `'U'`); `usart1SwapRxTx` (SWAP bit, TX leaves PB6) | effect + signal, per-PR |
 | Loopbacks (wires) | 20–23 | `readPin`, UART TX→RX, encoder count, comparator output | signal, **supervised** → nightly |
 
 L0-DAC-00/01/02 (flash and report of the old env `DAC`) are gone: the module flashes once, so L0-IOM-00/01 cover them.
@@ -42,7 +43,11 @@ L0-DAC-03..06 keep their IDs and criteria, so their history continues.
 
 CH1 only (TP1–TP3 ties CH1 to CH2, the injector loads CH3, [#5](https://github.com/owntech-foundation/Core-staging/issues/5)).
 Pins checked on the scope: **PA7, PB2, PC12, PD2** (GPIO, one per port), **PA5** (LED), **PA4** (DAC1), **PA6** (DAC2,
-L0-DAC), **PB6/PB7** (UART TX, swapped TX). Logic levels: high ≥ 2.8 V, low ≤ 0.4 V (VAVG).
+L0-DAC), **PB6** (UART TX, and flat after `usart1SwapRxTx`). Logic levels: high ≥ 2.8 V, low ≤ 0.4 V (VAVG).
+
+**PB7 on this bench**: the MUX route to PB7 (mux2 input 7) shows PB6's UART signal while USART1 RX on PB7 receives
+nothing and reads idle (L0-IOM-14.b/.c, 2026-11-28). PB7 is therefore recorded, not judged; a stuck select line on
+mux2 (input 7 read as input 6) would explain it and is worth checking on the SPOC.
 
 ### Gaps (catalogue rows L0-IOM-30..35, status Blocked)
 
@@ -81,4 +86,5 @@ tests/run_all.sh --l0 --target --supervised    # also L0-IOM-20..23: prompts for
 `known_failure` in [`catalogue.json`](../../catalogue.json) marks the checks that fail on `main` today, with the issue
 that tracks them. Afterwards the CUT runs the IO firmware: `SPOC_CUT_DIR=<Core-CUT checkout> bash tests/common/bench_restore.sh`.
 
-**Duration**: DURATION_PLACEHOLDER
+**Duration**: about 3.5 min per campaign (213 s on 2026-11-28: build and flash ~75 s, nine profiles, ~120 steps); the
+supervised loopbacks add about 1 min plus wiring.

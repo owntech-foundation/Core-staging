@@ -474,7 +474,14 @@ def p3_dac(b, sc):
                  f'{", ".join(map(str, SPIN_DAC_LEVELS))}', 'median of 5 VAVG = n x 2.048 V / 4096 ±(30 mV + 3 %)',
                  '; '.join(bad) if bad else ', '.join(vals))
 
-    # Current mode: sawtooth generator, decrementing (DacHAL.h), on DAC1 (pin + on-chip) and DAC3 (on-chip).
+    return good
+
+
+def p3b_current(b, sc):
+    """Current mode on a fresh boot: DAC1 and DAC3 still disabled, as an application calling currentModeInit first
+    finds them (RM0440: MCR.MODE can only be written while the channel is disabled)."""
+    good = True
+    # Sawtooth generator, decrementing (DacHAL.h), on DAC1 (pin + on-chip) and DAC3 (on-chip).
     for k, (n, tu, mode, peak, low) in enumerate(((1, 0, 0b001, 1.5, 0.5), (3, 1, 0b011, 2.0, 1.0))):
         _, r = b.step('DAC_CURRENT', n, tu)
         cr, mcr, st = r.dac(n, 'CR'), r.dac(n, 'MCR'), r.dac(n, 'STR1')
@@ -614,7 +621,8 @@ def fmt_burst(s):
     f, d, sw, vmax = s
     if not sw:
         return f'flat, max {vmax:.2f} V'
-    return f'{f:.0f} Hz, duty {d:.2f}' if f and d is not None else 'switching, no full period'
+    return (f'{f:.0f} Hz, duty {d:.2f}, max {vmax:.2f} V' if f and d is not None
+            else f'switching, no full period, max {vmax:.2f} V')
 
 
 def p7_uart(b, sc):
@@ -639,18 +647,26 @@ def p7_uart(b, sc):
     s = uart_burst(b, sc, 'PB6')
     f_want = BAUD / 2
     ok = s[2] and s[0] is not None and abs(s[0] - f_want) <= 0.01 * f_want and s[1] is not None and abs(s[1] - 0.5) <= 0.05
-    good &= line('L0-IOM-14', ok, f"usart1WriteChar('U') x {UART_BURST}: frame on PB6 (TX, MUX -> CH1)",
+    good &= line('L0-IOM-14.a', ok, f"usart1WriteChar('U') x {UART_BURST}: frame on PB6 (TX, MUX -> CH1)",
                  f'{f_want:.0f} Hz ±1 % square wave (9600 baud, 0x55 frames back to back), duty 0.50 ±0.05',
                  fmt_burst(s))
 
+    s7 = uart_burst(b, sc, 'PB7')
+    line('L0-IOM-14.b', 'INFO', 'PB7 (RX, pulled up) during the same burst, before the swap', 'recorded (flat expected)',
+         fmt_burst(s7))
+    rep, r = b.step('UART_READ')
+    c = rep['ret0']
+    line('L0-IOM-14.c', 'INFO', 'usart1ReadChar() after the bursts (does RX on PB7 hear TX on this bench?)',
+         "recorded ('x': nothing received)", f'{c:#04x} ({chr(c) if 32 <= c < 127 else "?"}); PB7 IDR {r.idr("PB7")}; USART1 ISR {r.usart("ISR"):#x}')
     _, r = b.step('UART_SWAP')
     swap, lp = r.usart('CR2') >> 15 & 1, r.lpuart('CR2') >> 15 & 1
-    s7 = uart_burst(b, sc, 'PB7')
     s6 = uart_burst(b, sc, 'PB6')
-    ok = swap == 1 and s7[2] and s7[0] is not None and abs(s7[0] - f_want) <= 0.01 * f_want and not s6[2]
-    good &= line('L0-IOM-15', ok, "usart1SwapRxTx(), then usart1WriteChar('U'): TX moves to PB7",
-                 f'USART1 CR2.SWAP 1; PB7 switching at {f_want:.0f} Hz ±1 %, PB6 flat',
-                 f'USART1 SWAP {swap} (LPUART1 SWAP {lp}); PB7 {fmt_burst(s7)}; PB6 {fmt_burst(s6)}')
+    s7 = uart_burst(b, sc, 'PB7')
+    # PB6 is judged on the scope; PB7 only recorded: on this bench the MUX route to PB7 (mux2 input 7) shows PB6's
+    # signal while RX on PB7 receives nothing (L0-IOM-14.b/.c), so a TX on PB7 cannot be told from one on PB6.
+    good &= line('L0-IOM-15', swap == 1 and not s6[2], "usart1SwapRxTx(), then usart1WriteChar('U'): TX leaves PB6",
+                 'USART1 CR2.SWAP 1; PB6 flat during the burst (PB7 recorded)',
+                 f'USART1 SWAP {swap} (LPUART1 SWAP {lp}); PB6 {fmt_burst(s6)}; PB7 {fmt_burst(s7)}')
     return good
 
 
@@ -785,6 +801,9 @@ def blocked(reason, only=None):
 
 
 def run_profile(name, fn, b, sc, first):
+    only = os.environ.get('CORE_IO_PROFILES')  # development: e.g. "P7" runs only that profile
+    if only and name.split()[0] not in only.split(','):
+        return True
     t0 = time.monotonic()
     if b.reset() is None:
         th.line(first, 'FAIL', f'{name}: fresh boot', 'report reachable', 'firmware did not boot after the reset')
@@ -834,6 +853,7 @@ def main():
         good &= run_profile('P1 GPIO', p1_gpio, b, sc, 'L0-IOM-03')
         good &= run_profile('P2 LED', p2_led, b, sc, 'L0-IOM-06')
         good &= run_profile('P3 spin.dac', p3_dac, b, sc, 'L0-IOM-08')
+        good &= run_profile('P3b current mode', p3b_current, b, sc, 'L0-IOM-10')
         good &= run_profile('P4 analog bus (L0-DAC)', p4_analog, b, sc, 'L0-DAC-03')
         good &= run_profile('P5 comparator', p5_comp, b, sc, 'L0-IOM-11')
         good &= run_profile('P6 encoder timers', p6_timer, b, sc, 'L0-IOM-12')
@@ -846,7 +866,7 @@ def main():
     finally:
         mux.disable_all()
         mux.close()
-    line('L0-IOM-24', 'INFO', 'module duration (flash, eight profiles, scope)', 'recorded',
+    line('L0-IOM-24', 'INFO', 'module duration (flash, nine profiles, scope)', 'recorded',
          f'{time.monotonic() - t_start:.0f} s, {len(b.log)} steps')
     return 0 if good else 1
 

@@ -1463,14 +1463,23 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-IOM-10",
    "title": "spin.dac currentModeInit/slopeCompensation: sawtooth registers",
-   "criterion": ".a/.c currentModeInit(1, TIMA) / (3, TIMB): EN1 1, WAVE1 11, STDIR1 0 (decrement), MODE1 001 (DAC1, pin + on-chip) / 011 (DAC3, on-chip); .b/.d slopeCompensation(1, 1.5, 0.5) / (3, 2.0, 1.0): STRSTDATA1 = peak x 4096 / 2.048, STINCDATA1 > 0 (steps INFO); trigger selection INFO",
+   "criterion": "On a fresh boot (DAC1/DAC3 still disabled: RM0440 lets MCR.MODE change only while the channel is off). .a/.c currentModeInit(1, TIMA) / (3, TIMB): EN1 1, WAVE1 11, STDIR1 0 (decrement), MODE1 001 (DAC1, pin + on-chip) / 011 (DAC3, on-chip); .b/.d slopeCompensation(1, 1.5, 0.5) / (3, 2.0, 1.0): STRSTDATA1 = peak x 4096 / 2.048, STINCDATA1 > 0 (steps INFO); trigger selection INFO",
    "covers": [
     "spin.dac.currentModeInit",
     "spin.dac.slopeCompensation"
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#40",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/40",
+    "criteria": [
+     "L0-IOM-10.b",
+     "L0-IOM-10.d"
+    ],
+    "note": "slopeCompensation truncates the reset code: (uint32_t)(4096U * set_voltage) / VREF with VREF 2.048f gives 2999 for 1.5 V and 3999 for 2.0 V (1 LSB low); round instead of truncate"
+   }
   },
   {
    "tab": "io",
@@ -1534,7 +1543,7 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-IOM-14",
    "title": "usart1WriteChar: frame on PB6 (TX) on the scope",
-   "criterion": "2000 x 'U' (0x55): PB6 on CH1 is a 4800 Hz ±1 % square wave, duty 0.50 ±0.05 (9600 baud, frames back to back)",
+   "criterion": ".a 2000 x 'U' (0x55): PB6 on CH1 is a 4800 Hz ±1 % square wave, duty 0.50 ±0.05 (9600 baud, frames back to back). .b INFO: PB7 (RX) on the scope during the same burst; .c INFO: usart1ReadChar and USART1 ISR after it (shows whether RX really heard TX)",
    "covers": [
     "spin.uart.usart1WriteChar"
    ],
@@ -1551,14 +1560,22 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-IOM-15",
    "title": "usart1SwapRxTx swaps USART1's TX and RX",
-   "criterion": "USART1 CR2.SWAP 1; after usart1WriteChar('U') bursts, PB7 switches at 4800 Hz ±1 % and PB6 stays flat. LPUART1 SWAP recorded",
+   "criterion": "USART1 CR2.SWAP 1; during a usart1WriteChar('U') burst PB6 stays flat (TX moved). PB7 and LPUART1 SWAP recorded: on the SPOC the MUX route to PB7 shows PB6's signal (L0-IOM-14.b/.c), so PB7 is not judged",
    "covers": [
     "spin.uart.usart1SwapRxTx",
     "spin.uart.usart1WriteChar"
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#40",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/40",
+    "criteria": [
+     "L0-IOM-15"
+    ],
+    "note": "usart1SwapRxTx sets SWAP on LPUART1 (PA2/PA3), not on USART1 that usart1Init/ReadChar/WriteChar drive (UartHAL.cpp); TX stays on PB6. The O2 boot hook _swap_usart1_tx_rx (hardware_auto_configuration.cpp) has the same mismatch"
+   }
   },
   {
    "tab": "io",
