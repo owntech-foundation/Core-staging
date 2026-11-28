@@ -442,6 +442,13 @@ static bool run_step(uint32_t step, const uint32_t *a)
 		r[0] = nvs_storage_get_version_in_nvs();
 		r[1] = nvs_storage_get_current_version();
 		r[2] = (uint32_t)nvs_storage_get_free_space();
+		{
+			/* Raw driver write of a 32-byte entry (the size of a linear conversion entry) under an ID no
+			 * caller uses, then its deletion: tells a DataAPI store failure from an NVS failure. */
+			static uint8_t probe[32] = {1, 2, 3, 4};
+			r[3] = (uint32_t)(int32_t)nvs_storage_store_data(ADC_CALIBRATION | 0xFFU, probe, sizeof(probe));
+			r[4] = (uint32_t)(int32_t)nvs_storage_store_data(ADC_CALIBRATION | 0xFFU, nullptr, 0);
+		}
 		break;
 	default:
 		return false;

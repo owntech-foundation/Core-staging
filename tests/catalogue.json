@@ -1646,7 +1646,15 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-12.b"
+    ],
+    "note": "ADC_1 (and ADC_2) default to software trigger (DataAPI::initializeAllAdcs sets all five ADCs to software); DataAPI.h says ADC_1 and ADC_2 default to TRIG_PWM. Fix the doc or the default"
+   }
   },
   {
    "id": "L0-TKD-13",
@@ -1749,7 +1757,17 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-18.c",
+     "L0-TKD-18.d",
+     "L0-TKD-18.e"
+    ],
+    "note": "convertValue returns -2 (ERROR_CHANNEL_NOT_FOUND) where DataAPI.h says -5000 (.c, .d). Before start() with no parameters set it reads the conversion parameters through a null pointer (data_conversion.cpp: allocated only in start() or by setConversionParameters*) and returns garbage, 1.09e-16 (.e; open question, pending a decision)"
+   }
   },
   {
    "id": "L0-TKD-19",
@@ -1768,7 +1786,15 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-19.e"
+    ],
+    "note": "getConversionParameterValue on a pin not enabled returns -2 (ERROR_CHANNEL_NOT_FOUND); DataAPI.h says -5000"
+   }
   },
   {
    "id": "L0-TKD-20",
@@ -1787,7 +1813,15 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-20.b"
+    ],
+    "note": "getConversionParameterValue indexes the stored parameters with parameter_t - 1 (gain 1, offset 2, r0 3, ...), so for an NTC r0 returns rdiv, b returns t0, rdiv and t0 return 0 (data_conversion_get_parameter)"
+   }
   },
   {
    "id": "L0-TKD-21",
@@ -1805,7 +1839,19 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-21.a",
+     "L0-TKD-21.b",
+     "L0-TKD-21.c",
+     "L0-TKD-21.d",
+     "L0-TKD-21.e"
+    ],
+    "note": "storeConversionParametersInMemory returns -1 on the CUT although the NVS version matches (0x0001) and 2008 bytes are free; retrieve then finds nothing (-4). -5000 (DataAPI.h, pin not found) cannot fit the int8_t return: -2 comes back. Code review: retrieve sizes its buffer for 2 parameters (max_parameters_count), so an NTC entry (4) cannot be retrieved even once store works"
+   }
   },
   {
    "id": "L0-TKD-22",
@@ -1824,7 +1870,16 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR"
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#39",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
+    "criteria": [
+     "L0-TKD-22.e",
+     "L0-TKD-22.f"
+    ],
+    "note": "start() after stop() never returns: the firmware stops answering (DataAPI stop() frees the converted-value buffers; start() runs data_dispatch_init and adc_core_init again)"
+   }
   },
   {
    "id": "L0-TKD-23",

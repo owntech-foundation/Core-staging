@@ -436,7 +436,8 @@ def pd1(b):
     cid = 'L0-TKD-21'
     ret = b.ret('NVS_INFO')
     line(f'{cid}.g', 'INFO', 'NVS before the store: storage version in NVS, current version, free bytes', 'recorded',
-         f'in NVS {ret[0]:#06x}, current {ret[1]:#06x}, free {s32(ret[2])}')
+         f'in NVS {ret[0]:#06x}, current {ret[1]:#06x}, free {s32(ret[2])}; raw nvs_storage_store_data of 32 bytes '
+         f'{s32(ret[3])}, delete {s32(ret[4])}')
     b.step('SET_LIN', PIN_LIN, f32(LIN52[0]), f32(LIN52[1]))
     rc = s32(b.ret('STORE', PIN_LIN)[0])
     good &= line(f'{cid}.a', rc == 0, 'storeConversionParametersInMemory(52), linear 0.25 / 3', 'returns 0', rc)
