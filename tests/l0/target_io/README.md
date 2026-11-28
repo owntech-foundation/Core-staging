@@ -86,5 +86,5 @@ tests/run_all.sh --l0 --target --supervised    # also L0-IOM-20..23: prompts for
 `known_failure` in [`catalogue.json`](../../catalogue.json) marks the checks that fail on `main` today, with the issue
 that tracks them. Afterwards the CUT runs the IO firmware: `SPOC_CUT_DIR=<Core-CUT checkout> bash tests/common/bench_restore.sh`.
 
-**Duration**: about 3.5 min per campaign (213 s on 2026-11-28: build and flash ~75 s, nine profiles, ~120 steps); the
+**Duration**: about 3.5 min per campaign (216 s in the campaign of 2026-11-28: build and flash ~75 s, nine profiles, 122 steps); the
 supervised loopbacks add about 1 min plus wiring.
