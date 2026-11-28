@@ -1,0 +1,46 @@
+# Coverage check of the API regression suite (Core-staging#45, GitHub-hosted, no bench, standard library only):
+# every public call of the user-facing headers (tools/api_calls.py, the build tier's inventory) has a matrix row,
+# i.e. a test in tests/catalogue.json `covers` it, or tests/coverage_gaps.json gives its gap reason; and every
+# `covers` names a public call. The coverage matrix (Markdown) goes to the job summary, the picture to an artifact.
+name: Coverage check
+
+on:
+  pull_request:
+    paths:
+      - 'zephyr/modules/**'
+      - 'tests/catalogue.json'
+      - 'tests/coverage_gaps.json'
+      - 'tests/common/coverage.py'
+      - 'tests/common/catalogue.py'
+      - 'tests/firmware/api_compile/**'
+      - 'tests/l0/target_timing/reference.json'
+      - 'tools/api_calls.py'
+      - '.github/workflows/coverage.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Catalogue is consistent
+        run: python3 tests/common/catalogue.py
+      - name: Every public call has a matrix row
+        run: python3 tests/common/coverage.py check --summary "$GITHUB_STEP_SUMMARY"
+      - name: Matrix picture
+        if: success() || failure()
+        run: python3 tests/common/coverage.py render --write coverage
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: coverage-matrix
+          path: coverage/

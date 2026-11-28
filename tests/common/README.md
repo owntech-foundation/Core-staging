@@ -10,6 +10,7 @@ Shared code for every test. Nothing here is compiled into the firmware.
 | [`interactive_plot.py`](interactive_plot.py) | Interactive review figures: zoom in time, read values (uPlot) |
 | [`vendor/`](vendor/) | uPlot 1.6.32 (MIT, `uPlot-LICENSE`), inlined into the review pages so they work offline |
 | [`catalogue.py`](catalogue.py) | Loads and checks [`../catalogue.json`](../catalogue.json) |
+| [`coverage.py`](coverage.py) | Coverage matrix (#45): `check` (every public call has a row: a test `covers` it or `../coverage_gaps.json` gives its gap reason), `render` (picture `coverage.svg`, `coverage.md`, `matrix.json`); the control center's Coverage and Timing tabs |
 | [`control_center.py`](control_center.py) | Writes `tests/out/control-center.html`: where the validation stands, one tab per stage |
 | [`target_harness.py`](target_harness.py) | On-target tests: build and flash a `tests/firmware` env over the ST-Link (then `tools/restore_board_lines.py`), find a symbol, read and write RAM over SWD without halting, command/acknowledge protocol, result lines |
 | [`target_preflight.sh`](target_preflight.sh) | What on-target tests need (PlatformIO, OpenOCD, ST-Link, USB access, MCUboot), one line each, with the fix; `--install` runs the fixes that need no sudo |
