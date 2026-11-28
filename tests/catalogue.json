@@ -42,6 +42,15 @@
     "One firmware for the module (env PWM, tests/firmware/pwm): the host commands steps over SWD and judges the HRTIM registers it reads itself, the pins sampled on the chip and the scope through the SPOC MUX (CH1 and CH4, the two independent nodes, #5). On-target: `tests/run_all.sh --l0 --target`. Supervised rows (hand-held probes until #16) need `--supervised` and run only on Luiz's computer.",
     "Known failures (catalogue `known_failure`) fail on main and on the baseline: reported as known, they do not fail the campaign (#35). L0-HRI (Core#172) belongs to this module."
    ]
+  },
+  {
+   "id": "nvs",
+   "title": "MetaData / NVS",
+   "question": "Do the spin.metaData calls and the NVS store/retrieve paths do what their documentation says, in the same boot, after a reset and after a reflash? (API regression suite, Core-staging#35/#42)",
+   "notes": [
+    "One firmware for the module (env NVS, tests/firmware/metadata_nvs): the host commands steps over SWD and judges the return codes and the bytes read back. Nightly tier: `tests/run_all.sh --l0 --target --nightly` (two firmwares, three flashes); without `--nightly` the module reports BLOCKED.",
+    "The CUT's NVS partition (0x0807F000, 4 kB) is shared with sensor calibration and safety thresholds: the module backs it up over SWD before writing and writes the same bytes back at the end (L0-NVS-13). Safety threshold store/retrieve is a gap pending the Safety API graduation (#35)."
+   ]
   }
  ],
  "tests": [
@@ -1285,6 +1294,383 @@
    "criterion": "INFO: seconds from flash to the last profile, and steps run",
    "tier": "per-PR",
    "target_tier": "per-PR"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-00",
+   "title": "Module test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_metadata_nvs exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true,
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-01",
+   "title": "env NVS builds, flashes and answers; the CUT's NVS partition backed up first",
+   "criterion": "4 kB read over SWD at 0x0807F000 before any write (else nothing is written); `pio run -e NVS -t upload` exits 0; the report reaches magic NVS1",
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-02",
+   "title": "nvs_storage versions and free space",
+   "criterion": "get_current_version >= 1; get_version_in_nvs equal to it after a store (R12); 0 < get_free_space <= 4096 B",
+   "covers": [
+    "nvs_storage_get_current_version",
+    "nvs_storage_get_version_in_nvs",
+    "nvs_storage_get_free_space"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-03",
+   "title": "metaData argument errors",
+   "criterion": "set serial/password at the documented length +/-1: -2; get with a buffer one byte short: -2 and nothing written; extra slot 5: -3; 17 B extra: -2; 15 B extra buffer: -2 (docs/spin_metaDataAPI.md)",
+   "covers": [
+    "spin.metaData.setSpinSerialNumber",
+    "spin.metaData.getSpinSerialNumber",
+    "spin.metaData.setShieldSerialNumber",
+    "spin.metaData.getShieldSerialNumber",
+    "spin.metaData.setSpinVersion",
+    "spin.metaData.getSpinVersion",
+    "spin.metaData.setShieldVersion",
+    "spin.metaData.getShieldVersion",
+    "spin.metaData.setSpinPassword",
+    "spin.metaData.getSpinPassword",
+    "spin.metaData.setShieldPassword",
+    "spin.metaData.getShieldPassword",
+    "spin.metaData.setExtraData",
+    "spin.metaData.getExtraData"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-04",
+   "title": "clearAllMetaData, then every getter",
+   "criterion": "clearAllMetaData 0; every getter -1 (\"nothing stored yet\") and its output untouched",
+   "covers": [
+    "spin.metaData.clearAllMetaData",
+    "spin.metaData.getSpinSerialNumber",
+    "spin.metaData.getShieldSerialNumber",
+    "spin.metaData.getSpinVersion",
+    "spin.metaData.getShieldVersion",
+    "spin.metaData.getSpinPassword",
+    "spin.metaData.getShieldPassword",
+    "spin.metaData.getExtraData"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-05",
+   "title": "Every metaData setter, then its getter",
+   "criterion": "setters 0; getters return the bytes read (serials 13, passwords 10, extra slots their length; versions 0) and the bytes written, nothing past them; a stored serial overwritten reads back the new value",
+   "covers": [
+    "spin.metaData.setSpinSerialNumber",
+    "spin.metaData.getSpinSerialNumber",
+    "spin.metaData.setShieldSerialNumber",
+    "spin.metaData.getShieldSerialNumber",
+    "spin.metaData.setSpinVersion",
+    "spin.metaData.getSpinVersion",
+    "spin.metaData.setShieldVersion",
+    "spin.metaData.getShieldVersion",
+    "spin.metaData.setSpinPassword",
+    "spin.metaData.getSpinPassword",
+    "spin.metaData.setShieldPassword",
+    "spin.metaData.getShieldPassword",
+    "spin.metaData.setExtraData",
+    "spin.metaData.getExtraData"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-06",
+   "title": "Conversion parameters: store, change, retrieve in the same boot",
+   "criterion": "V_HIGH at its devicetree default before any retrieve (R11); store 0; after (1, 0) set in RAM, retrieve 0 gives back the stored gain/offset bit-exact (pin 51 via spin.data, V_HIGH via shield.sensors)",
+   "covers": [
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory",
+    "shield.sensors.storeParametersInMemory",
+    "shield.sensors.retrieveParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-07",
+   "title": "NVS free space falls when entries are written",
+   "criterion": "get_free_space after writing the 11 metadata fields falls by at least the bytes written",
+   "covers": [
+    "nvs_storage_get_free_space"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-08",
+   "title": "After an ST-Link reset, metaData and conversion parameters survive",
+   "criterion": "boot count +1; every getter returns this run's values (random run tag); V_HIGH already at its stored values (shield sensors load them at boot, Sensors.cpp), pin 51 not until retrieve, then both at the stored values; version in NVS = current",
+   "covers": [
+    "spin.metaData.setSpinSerialNumber",
+    "spin.metaData.getSpinSerialNumber",
+    "spin.metaData.setShieldSerialNumber",
+    "spin.metaData.getShieldSerialNumber",
+    "spin.metaData.setSpinVersion",
+    "spin.metaData.getSpinVersion",
+    "spin.metaData.setShieldVersion",
+    "spin.metaData.getShieldVersion",
+    "spin.metaData.setSpinPassword",
+    "spin.metaData.getSpinPassword",
+    "spin.metaData.setShieldPassword",
+    "spin.metaData.getShieldPassword",
+    "spin.metaData.setExtraData",
+    "spin.metaData.getExtraData",
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory",
+    "shield.sensors.storeParametersInMemory",
+    "shield.sensors.retrieveParametersFromMemory",
+    "nvs_storage_get_version_in_nvs"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-09",
+   "title": "After a reflash, metaData and conversion parameters survive",
+   "criterion": "env SMOKE flashed and running (its magic read), then env NVS flashed again: same checks as L0-NVS-08 (docs: \"survives a reset or a firmware reflash\")",
+   "covers": [
+    "spin.metaData.setSpinSerialNumber",
+    "spin.metaData.getSpinSerialNumber",
+    "spin.metaData.setShieldSerialNumber",
+    "spin.metaData.getShieldSerialNumber",
+    "spin.metaData.setSpinVersion",
+    "spin.metaData.getSpinVersion",
+    "spin.metaData.setShieldVersion",
+    "spin.metaData.getShieldVersion",
+    "spin.metaData.setSpinPassword",
+    "spin.metaData.getSpinPassword",
+    "spin.metaData.setShieldPassword",
+    "spin.metaData.getShieldPassword",
+    "spin.metaData.setExtraData",
+    "spin.metaData.getExtraData",
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory",
+    "shield.sensors.storeParametersInMemory",
+    "shield.sensors.retrieveParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-10",
+   "title": "clearAllMetaData leaves other modules' NVS data",
+   "criterion": "after clearAllMetaData: every metaData getter -1, conversion parameters still retrieved with their values; after a reset the fields stay cleared",
+   "covers": [
+    "spin.metaData.clearAllMetaData",
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory",
+    "shield.sensors.storeParametersInMemory",
+    "shield.sensors.retrieveParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-11",
+   "title": "nvs_storage_clear_all_stored_data",
+   "criterion": "returns 0; right after, nothing is retrieved; after a reset: version in NVS 0, every getter -1, retrieve -1 (\"empty\"); storing again then works across a reset. A store right after the clear without a reset is recorded (INFO)",
+   "covers": [
+    "nvs_storage_clear_all_stored_data",
+    "nvs_storage_get_version_in_nvs",
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-12",
+   "title": "Store/retrieve on a pin with no ADC channel",
+   "criterion": "storeConversionParametersInMemory / retrieveConversionParametersFromMemory(3) return -5000 \"pin not found\" (DataAPI.h)",
+   "covers": [
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly",
+   "known_failure": {
+    "issue": "#42",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/42",
+    "criteria": [
+     "L0-NVS-12"
+    ],
+    "note": "DataAPI.h documents -5000 (pin not found) for store/retrieveConversionParameters..., but they return int8_t: the code returns ERROR_CHANNEL_NOT_FOUND = -2, which retrieve also uses for a version mismatch"
+   }
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-13",
+   "title": "The CUT's NVS partition written back byte for byte",
+   "criterion": "after the module (whatever happened): erase + program + verify of the backup exit 0, and the 4 kB read back equal to the backup",
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-15",
+   "title": "A store on the CUT's NVS as found, then the module clears it",
+   "criterion": "nvs_storage_store_data >= 0 and setShieldVersion 0 / getShieldVersion read back on the partition as the CUT had it (fails with -EIO when free double-words were programmed with 0xFF, see README); then clear_all_stored_data 0 and, after a reset, version in NVS 0",
+   "covers": [
+    "nvs_storage_store_data",
+    "spin.metaData.setShieldVersion",
+    "spin.metaData.getShieldVersion",
+    "nvs_storage_clear_all_stored_data"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-16",
+   "title": "nvs_storage_store_data / retrieve_data called directly",
+   "criterion": "on an empty NVS, key 0x7F01 (no category): store of 16 B returns 0 (nvs_storage.h); retrieve returns 16 and the bytes; retrieve into 8 B < 0; after a 0-byte store (delete) retrieve < 0",
+   "covers": [
+    "nvs_storage_store_data",
+    "nvs_storage_retrieve_data"
+   ],
+   "depth": "effect",
+   "tier": "nightly",
+   "target_tier": "nightly",
+   "known_failure": {
+    "issue": "#42",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/42",
+    "criteria": [
+     "L0-NVS-16.a"
+    ],
+    "note": "nvs_storage.h documents 0 on success for nvs_storage_store_data; it returns nvs_write()'s byte count (16 for 16 B). Wrappers test < 0, so only direct callers following the docs are misled"
+   }
+  },
+  {
+   "tab": "nvs",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env NVS (tests/firmware/metadata_nvs, a step executor over spin.metaData, the conversion-parameter store/retrieve calls and nvs_storage; Twist shield config for shield.sensors); return values and bytes read over SWD; NVS partition backed up first and written back at the end",
+   "source": "`tests/l0/target_metadata_nvs/run.py`, `tests/firmware/metadata_nvs/main.cpp`, `docs/spin_metaDataAPI.md`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --nightly",
+   "id": "L0-NVS-14",
+   "title": "Module duration",
+   "criterion": "INFO: seconds from the backup to the write-back, and steps run",
+   "tier": "nightly",
+   "target_tier": "nightly"
   }
  ]
 }
