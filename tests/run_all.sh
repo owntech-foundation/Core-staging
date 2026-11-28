@@ -24,6 +24,8 @@
 ##   tests/run_all.sh --l0 --target   # also the on-target L0 tests: REFLASHES the Spin over the ST-Link
 ##   tests/run_all.sh --l0 --target --supervised   # also the supervised rows: prompts on the terminal for each
 ##                                    # manual step (hand-held probes); Luiz's computer only, never the runner
+##   tests/run_all.sh --l0 --target --nightly      # also the nightly-tier modules (long: several reflashes, NVS
+##                                    # writes); without it they report BLOCKED
 set -uo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -34,6 +36,7 @@ for arg in "$@"; do
         --l1) levels+=(L1) ;;
         --target) export CORE_TARGET=1 ;;
         --supervised) export CORE_SUPERVISED=1 ;;
+        --nightly) export CORE_NIGHTLY=1 ;;
         -h|--help) sed -n '/^## @brief/,/^##   .*--target/s/^## \{0,1\}//p' "$0"; exit 0 ;;
         *) echo "unknown option: $arg" >&2; exit 2 ;;
     esac
@@ -66,6 +69,7 @@ object_code() {
         target_safety_report) echo SAF-00 ;;
         target_hrtim_reinit) echo HRI-00 ;;
         target_pwm) echo PWM-00 ;;
+        target_metadata_nvs) echo NVS-00 ;;
         l1) echo INT-00 ;;
         *) echo "$1" | tr '[:lower:]' '[:upper:]' ;;
     esac
