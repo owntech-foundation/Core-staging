@@ -13,7 +13,7 @@ Each LOG is the captured output of one test binary or script. Lines that start
 with "@@<TAB>" are criteria (see tests/common/check.h); everything else is
 ignored here and stays available in the log file.
 
-Exit code: 1 if any criterion is FAIL, 0 otherwise. Standard library only.
+Exit code: 1 if any criterion is a new FAIL (not covered by an open finding or a\ncatalogue "known_failure"), 0 otherwise. Standard library only.
 """
 
 from __future__ import annotations
@@ -99,14 +99,14 @@ def findings_register() -> list[dict]:
     (L0-GFL-08.a, ...). Rows whose status starts with "Closed" are not open: a
     FAIL on their criteria is a regression and is reported as new.
     """
+    findings = catalogue_findings()
     if not PROCEDURE.exists():
-        return []
+        return findings
     text = PROCEDURE.read_text(encoding="utf-8")
     start = text.find("## 11. Findings register")
     if start < 0:
-        return []
+        return findings
     end = text.find("\n## ", start + 1)
-    findings = []
     for line in text[start:end if end > 0 else None].splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) < 5:
@@ -122,6 +122,25 @@ def findings_register() -> list[dict]:
             status=cells[4],
             open=not cells[4].lower().startswith("closed")))
     return findings
+
+
+def catalogue_findings() -> list[dict]:
+    """Known failures marked in tests/catalogue.json (#35: fail on the baseline and on main = known failure).
+
+    A test's optional "known_failure" {issue, url, criteria} names the issue that tracks it; "criteria" lists the
+    criterion or case IDs it covers (default: the whole test). A FAIL there is reported as known and does not fail
+    the campaign; once all of them pass, the record says the marking can be removed.
+    """
+    path = REPO / "tests/catalogue.json"
+    if not path.exists():
+        return []
+    out = []
+    for t in json.loads(path.read_text(encoding="utf-8")).get("tests", []):
+        k = t.get("known_failure")
+        if k:
+            out.append(dict(issue=k["issue"], url=k.get("url", ""), criteria=k.get("criteria") or [t["id"]],
+                            status="Open (catalogue)", open=True))
+    return out
 
 
 def covers(finding: dict, criterion_id: str) -> bool:
@@ -162,8 +181,8 @@ def main() -> int:
         covered = [r for r in rows if covers(f, r["id"])]
         if f["open"] and covered and not any(r["verdict"] in ("FAIL", "BLOCKED") for r in covered):
             fixed.append(f)
-    # A campaign that reports nothing must not look green.
-    failed = counts["FAIL"] > 0 or not rows
+    # A campaign that reports nothing must not look green. Known failures (open findings) do not fail it (#35).
+    failed = bool(new) or not rows
     now = dt.datetime.now().astimezone()
     core = git_state(REPO)
     library = git_state(LIBRARY) if LIBRARY.exists() else "not fetched"
@@ -208,7 +227,8 @@ def main() -> int:
             f"{counts['BLOCKED']} blocked, over {len(cases)} test cases.", ""]
     if counts["FAIL"]:
         out += [f"> **Failures:** {len(new)} new, {len(known)} known "
-                f"(open findings, procedure §11). Only new failures need an issue.", ""]
+                f"(open findings: procedure §11 or catalogue known_failure). Only new failures need an issue; "
+                f"known failures do not fail the campaign.", ""]
     if l1:
         out += ["> **L1 scope:** switching integration plus selected formal application criteria. First-50-ms startup, declared-window regulation and initial burst release are assessed. Full startup, repeated burst cycles and remaining scenarios are explicitly incomplete. No averaged model is required.", ""]
     if fixed:

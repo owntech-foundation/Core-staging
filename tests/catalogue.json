@@ -33,6 +33,15 @@
    "notes": [
     "On-target, like the On target tab: `tests/run_all.sh --l0 --target` or `tests/l0/target_timing/run.sh --run`. Verdicts are INFO until `tests/l0/target_timing/reference.json` holds a reference run; then a row regresses when its mean exceeds the reference by more than max(10 %, 3σ) + 50 cycles (Core-staging#35). The reference run on main and pre-zephyr-4.4: `tests/l0/target_timing/reference_run.sh`."
    ]
+  },
+  {
+   "id": "pwm",
+   "title": "PWM",
+   "question": "Does every spin.pwm (PwmHAL) call do what its documentation says, on the registers, on the pins and on the scope? (API regression suite, Core-staging#35/#38)",
+   "notes": [
+    "One firmware for the module (env PWM, tests/firmware/pwm): the host commands steps over SWD and judges the HRTIM registers it reads itself, the pins sampled on the chip and the scope through the SPOC MUX (CH1 and CH4, the two independent nodes, #5). On-target: `tests/run_all.sh --l0 --target`. Supervised rows (hand-held probes until #16) need `--supervised` and run only on Luiz's computer.",
+    "Known failures (catalogue `known_failure`) fail on main and on the baseline: reported as known, they do not fail the campaign (#35). L0-HRI (Core#172) belongs to this module."
+   ]
   }
  ],
  "tests": [
@@ -698,6 +707,611 @@
    "id": "L0-SAF-03",
    "title": "Safety error thread reports the channel that tripped (Core-staging#47)",
    "criterion": "first error block printed after one channel's minimum threshold is set above any reading: that channel true, the five others false; for I1, V1, I2, V2, Ihigh, Vhigh (.a-.f)"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-00",
+   "title": "HRTIM re-init test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_hrtim_reinit exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true,
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-01",
+   "title": "HRTIM re-init test firmware builds and flashes over the ST-Link",
+   "criterion": "`pio run -e HRI -t upload` exits 0",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "covers": [
+    "spin.pwm.setModulation",
+    "spin.pwm.initUnit",
+    "spin.pwm.setFrequency"
+   ],
+   "depth": "signal"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-02",
+   "title": "An up-down unit's period is half the master period at its first init",
+   "criterion": "PERxR(A) = MPER / 2 ±1",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "covers": [
+    "spin.pwm.setModulation",
+    "spin.pwm.initUnit",
+    "spin.pwm.setFrequency"
+   ],
+   "depth": "signal"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-03",
+   "title": "An up-down unit switches at its set frequency at its first init",
+   "criterion": "PA8: FREQuency, median of 5 = 200 kHz ±1 %",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "covers": [
+    "spin.pwm.setModulation",
+    "spin.pwm.initUnit",
+    "spin.pwm.setFrequency"
+   ],
+   "depth": "signal"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-04",
+   "title": "An up-down unit initialised again keeps its period (Core#172)",
+   "criterion": "re-init 1 to 10 (.01-.10): initUnit(PWMA) returns within 2 s and PERxR(A) equals its boot value",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "covers": [
+    "spin.pwm.initUnit"
+   ],
+   "depth": "signal",
+   "known_failure": {
+    "issue": "#8",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
+    "criteria": [
+     "L0-HRI-04"
+    ],
+    "note": "Core#172 up-down re-init, before its fix (luizvilla/Core#41)"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-05",
+   "title": "An up-down unit initialised again keeps its switching frequency (Core#172)",
+   "criterion": "re-init 1 to 10 (.01-.10): PA8 FREQuency, median of 5 = 200 kHz ±1 %",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "covers": [
+    "spin.pwm.initUnit"
+   ],
+   "depth": "signal",
+   "known_failure": {
+    "issue": "#8",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
+    "criteria": [
+     "L0-HRI-05"
+    ],
+    "note": "Core#172 up-down re-init, before its fix (luizvilla/Core#41)"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench: CUT flashed with env HRI (tests/firmware/hrtim_reinit: PWMA up-down 200 kHz, duty 0.5, started); MUX routes PA8 (mux1 input 8) to CH1",
+   "source": "`tests/l0/target_hrtim_reinit/run.py`, `tests/firmware/hrtim_reinit/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-HRI-06",
+   "title": "Where the firmware stopped when a re-init did not return",
+   "criterion": "INFO, reported only when a re-init is not acknowledged (before Core#172's fix: the period assert)",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-00",
+   "title": "Module test failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when target_pwm exits non-zero without reporting a FAIL itself.",
+   "reports_only_failures": true,
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-01",
+   "title": "env PWM builds, flashes and answers its steps over SWD",
+   "criterion": "`pio run -e PWM -t upload` exits 0; the report reaches magic PWM1",
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-02",
+   "title": "setFrequency + initUnit: timer registers at their defaults",
+   "criterion": "200 kHz: MPER = PERAR = 27200 (32 x 170 MHz / 200 kHz); CKPSC 0, continuous, preload; dead time 100 ns both edges (±1 step of 735 ps), DTEN; output 1 set on period, reset on CMP1; timer A reset on the master period; outputs not enabled, pins low",
+   "covers": [
+    "spin.pwm.setFrequency",
+    "spin.pwm.initUnit"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-03",
+   "title": "Getters after initUnit return the unit's state",
+   "criterion": "getPeriod 27200, getPeriodUs 5; getModulation/getSwitchConvention/getMode agree with UDM/SWPA; getResolutionPs 184 (PwmHAL.h table); getPeriodMax 0xFFDF and getPeriodMin 0x60 (RM0440, CKPSC 0); 0 < getFrequencyMin <= 200 kHz <= getFrequencyMax; getAdcTrigger UNKNOWN_ADC before setAdcTrigger (PwmHAL.h); getEev, getAdcEdgeTrigger, getPeriodEvntRep defaults recorded",
+   "covers": [
+    "spin.pwm.getPeriod",
+    "spin.pwm.getPeriodUs",
+    "spin.pwm.getModulation",
+    "spin.pwm.getSwitchConvention",
+    "spin.pwm.getMode",
+    "spin.pwm.getResolutionPs",
+    "spin.pwm.getPeriodMax",
+    "spin.pwm.getPeriodMin",
+    "spin.pwm.getFrequencyMin",
+    "spin.pwm.getFrequencyMax",
+    "spin.pwm.getAdcTrigger",
+    "spin.pwm.getEev",
+    "spin.pwm.getAdcEdgeTrigger",
+    "spin.pwm.getPeriodEvntRep"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#60",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-03.d",
+     "L0-PWM-03.e",
+     "L0-PWM-03.f",
+     "L0-PWM-03.g"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-04",
+   "title": "setDutyCycle / setDutyCycleRaw write CMP1",
+   "criterion": "setDutyCycle(PWMA, 0.3): CMP1AR 8160; setDutyCycleRaw(PWMA, 13600): CMP1AR 13600; back to 0.3: 8160",
+   "covers": [
+    "spin.pwm.setDutyCycle",
+    "spin.pwm.setDutyCycleRaw"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-05",
+   "title": "startDualOutput: complementary pair at the duty on the pins",
+   "criterion": "TA1OEN = TA2OEN = 1; on the chip PA8 0.28, PA9 0.68 ±0.03 (duty 0.3 less one 100 ns dead time each); on the scope (MUX) both 200 kHz ±0.5 %, duty ±0.02; never high together (overlap <= 1 %); MUX dead times INFO",
+   "covers": [
+    "spin.pwm.startDualOutput",
+    "spin.pwm.setDutyCycle"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-06",
+   "title": "Latency to effect: call to pin (PA6 marker on CH1, PA8 on CH4)",
+   "criterion": "setDutyCycle 0.3 <-> 0.6 (4 captures): pulses that started before the call keep the old width, the first period starting after it has the new one, within one period (+1 us); stopDualOutput: PA8 low within 1 us; startDualOutput: first PA8 edge within one period (+1 us). Latencies and call cycles recorded (timing is INFO until a reference run, #35)",
+   "covers": [
+    "spin.pwm.setDutyCycle",
+    "spin.pwm.stopDualOutput",
+    "spin.pwm.startDualOutput"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-07",
+   "title": "stopDualOutput, startSingleOutput, stopSingleOutput",
+   "criterion": "OENR bits and pins on the chip after each call; scope: the stopped pin flat low (< 0.5 V), the started one at 200 kHz with its duty",
+   "covers": [
+    "spin.pwm.stopDualOutput",
+    "spin.pwm.startSingleOutput",
+    "spin.pwm.stopSingleOutput"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-08",
+   "title": "setFrequency after initUnit",
+   "criterion": "400 kHz: MPER = PERAR = 13600, CMP1 4080 (duty kept), PA8 400 kHz on the scope; back to 200 kHz: 27200 / 8160, PA8 200 kHz",
+   "covers": [
+    "spin.pwm.setFrequency"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-09",
+   "title": "setPhaseShift on PWMB and PWMC",
+   "criterion": "PWMC 90°: MCMP2R 6800, RSTCR MSTCMP2 (not MSTPER), PB12 90° ±2° after PA8; PWMB 180°: CMP2AR 13600, RSTBR TIMACMP2, PA10 180°; PWMC -90° = 270° (MCMP2R 20400); PWMC 0: back on MSTPER, 0°",
+   "covers": [
+    "spin.pwm.setPhaseShift"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-10",
+   "title": "setPhaseShift(PWMA, ...): what it does (fix: Core-staging#61)",
+   "criterion": "INFO: RSTAR, master compares and the PA8/PB12 phase before and after setPhaseShift(PWMA, 90) and (PWMA, 288), then after setFrequency",
+   "covers": [
+    "spin.pwm.setPhaseShift"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-11",
+   "title": "ADC trigger calls",
+   "criterion": "setAdcTrigger(PWMA, ADC_2) -> getAdcTrigger ADC_2; setAdcDecimation(4): ADCPS1.AD3PSC 3; enableAdcTrigger: ADC3R.AD3TAC3; setAdcTriggerInstant(0.25): CMP3AR 6800; setAdcTriggerPostScaler(2): AD3PSC 2; disableAdcTrigger: AD3TAC3 0",
+   "covers": [
+    "spin.pwm.setAdcTrigger",
+    "spin.pwm.getAdcTrigger",
+    "spin.pwm.setAdcDecimation",
+    "spin.pwm.enableAdcTrigger",
+    "spin.pwm.setAdcTriggerInstant",
+    "spin.pwm.setAdcTriggerPostScaler",
+    "spin.pwm.disableAdcTrigger"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-12",
+   "title": "Period event",
+   "criterion": "configurePeriodEvnt(MSTR, 10): MREP 9, getPeriodEvntRep 10, callback 20 kHz ±1 %; setPeriodEvntRep(20): MREP 19, 10 kHz; disablePeriodEvnt: 0 Hz; with TIMA (the documented argument): REPAR 9, 20 kHz and the firmware still running",
+   "covers": [
+    "spin.pwm.configurePeriodEvnt",
+    "spin.pwm.enablePeriodEvnt",
+    "spin.pwm.setPeriodEvntRep",
+    "spin.pwm.getPeriodEvntRep",
+    "spin.pwm.disablePeriodEvnt"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#60",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-12.e"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-13",
+   "title": "Burst mode",
+   "criterion": "initBurstMode: BMCR.BME; setBurstMode(2, 4): BMCMPR 1, BMPER 3; startBurstMode: BMSTAT, PA8 high time halved (±0.04); stopBurstMode: BMSTAT 0, PA8 back; deInitBurstMode: BME 0",
+   "covers": [
+    "spin.pwm.initBurstMode",
+    "spin.pwm.setBurstMode",
+    "spin.pwm.startBurstMode",
+    "spin.pwm.stopBurstMode",
+    "spin.pwm.deInitBurstMode"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-14",
+   "title": "Pre-init calls: up-down, PWMx2, dead time, ADC edge",
+   "criterion": "setModulation(UpDwn): getModulation, UDM 1, PERAR 13600; setSwitchConvention(PWMx2): SWPA 1, the duty on PA9 (chip and scope, 0.25-0.31); setDeadTime(200, 50): DTAR ±1 step; setAdcEdgeTrigger(down): getAdcEdgeTrigger",
+   "covers": [
+    "spin.pwm.setModulation",
+    "spin.pwm.getModulation",
+    "spin.pwm.setSwitchConvention",
+    "spin.pwm.getSwitchConvention",
+    "spin.pwm.setDeadTime",
+    "spin.pwm.setAdcEdgeTrigger",
+    "spin.pwm.getAdcEdgeTrigger"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-15",
+   "title": "Duty near 0 does not invert the outputs (Core#166/#167)",
+   "criterion": "PWMA up-down PWMx2 (duty pin PA9) and PWMC up-down PWMx1 (PB12) at duty 0, 0.0001 ... 0.0025, 0.005: duty pin high <= 0.02, complement >= 0.9, CMP1 0 or >= 0x60 (RM0440); duty pins on the scope (MUX, DC) < 0.3 V at 0.0001, 0.001, 0.0024",
+   "covers": [
+    "spin.pwm.setDutyCycle"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#8",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
+    "criteria": [
+     "L0-PWM-15"
+    ],
+    "note": "Core#166/#167 low-duty reversal, before its fix"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-16",
+   "title": "Duty near 1 does not invert the outputs (Core#166/#167)",
+   "criterion": "Same units at duty 0.9976, 0.999, 0.9999, 1: duty pin high >= 0.9, complement <= 0.02",
+   "covers": [
+    "spin.pwm.setDutyCycle"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#8",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/8",
+    "criteria": [
+     "L0-PWM-16"
+    ],
+    "note": "Near-1 reversal at duty 0.999 (CMP1 between PER - 0x60 and PER - 3): not covered by Core#167 as it stands"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-17",
+   "title": "setMode / setEev: current mode",
+   "criterion": "setMode(PWMD, CURRENT_MODE), setEev(PWMD, EEV5) before initUnit: getMode, getEev; SETD1R CMP4, RSTD1R CMP1 | EEV5",
+   "covers": [
+    "spin.pwm.setMode",
+    "spin.pwm.getMode",
+    "spin.pwm.setEev",
+    "spin.pwm.getEev"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-18",
+   "title": "initFixedFrequency",
+   "criterion": "100 kHz: MPER = PERAR = 54400, CKPSC 0; PA8 100 kHz on the scope",
+   "covers": [
+    "spin.pwm.initFixedFrequency"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-19",
+   "title": "initVariableFrequency and setFrequency within and below its range",
+   "criterion": "initVariableFrequency(200 kHz, 50 kHz): CKPSC 1, PERAR 13600, getResolutionPs 368; setFrequency 100 / 50 kHz: PERAR 27200 / 54400 and the scope; 40 kHz refused (PERAR stays)",
+   "covers": [
+    "spin.pwm.initVariableFrequency",
+    "spin.pwm.setFrequency",
+    "spin.pwm.getResolutionPs"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR",
+   "known_failure": {
+    "issue": "#60",
+    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
+    "criteria": [
+     "L0-PWM-19.b"
+    ],
+    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
+   }
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-PWM-20",
+   "title": "SUPERVISED: dead time on direct probes",
+   "criterion": "Hand-held probes PA8 on CH2, PA9 on CH3: dead time 100/100 ns then setDeadTime(200, 50) at 200 kHz, ±3 ns. Prompts for the probes; BLOCKED without --supervised",
+   "covers": [
+    "spin.pwm.setDeadTime",
+    "spin.pwm.initUnit",
+    "spin.pwm.startDualOutput"
+   ],
+   "depth": "accuracy",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target --supervised",
+   "id": "L0-PWM-21",
+   "title": "SUPERVISED: low-duty sweep on direct probes",
+   "criterion": "PWMA up-down PWMx2, CMP1 0..128 by 4 and near the period: PA9 never stuck high (mean < 0.3 V) on a direct probe (#8; ns pulses the MUX cannot show)",
+   "covers": [
+    "spin.pwm.setDutyCycleRaw"
+   ],
+   "depth": "signal",
+   "tier": "supervised",
+   "target_tier": "nightly"
+  },
+  {
+   "tab": "pwm",
+   "level": "L0",
+   "conditions": "SPOC bench, bare CUT flashed with env PWM (tests/firmware/pwm, a step executor over spin.pwm); HRTIM registers read over SWD; pins sampled on the chip (GPIO IDR, 4096 random samples); MUX routes CUT pins to scope CH1 and CH4",
+   "source": "`tests/l0/target_pwm/run.py`, `tests/firmware/pwm/main.cpp`",
+   "status": "implemented",
+   "harness": "tests/run_all.sh --l0 --target",
+   "id": "L0-PWM-22",
+   "title": "Module duration",
+   "criterion": "INFO: seconds from flash to the last profile, and steps run",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   }
  ]
 }
