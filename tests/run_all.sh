@@ -66,6 +66,7 @@ object_code() {
         target_safety_report) echo SAF-00 ;;
         target_hrtim_reinit) echo HRI-00 ;;
         target_pwm) echo PWM-00 ;;
+        target_task_data) echo TKD-00 ;;
         l1) echo INT-00 ;;
         *) echo "$1" | tr '[:lower:]' '[:upper:]' ;;
     esac
