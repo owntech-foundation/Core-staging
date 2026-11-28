@@ -69,8 +69,8 @@ compared the partition after `bench_restore.sh` (Core-CUT upload) with the backu
 twice, resets the CUT four times, and writes flash on every run. `tests/run_all.sh --l0 --target --nightly` runs it.
 Without `--nightly` (CORE_NIGHTLY=1) every criterion reports BLOCKED, like the supervised rows.
 
-Duration on the SPOC bench: see L0-NVS-14 in the record. The first runs took **DURATION** (builds already cached; add
-~55 s per firmware for a cold build).
+Duration on the SPOC bench (L0-NVS-14): **279–289 s** (~4.7 min, 185 steps) with both builds cached; a cold build
+adds ~60–75 s per firmware (NVS, SMOKE), so ~7 min on a fresh runner checkout.
 
 ```sh
 tests/run_all.sh --l0 --target --nightly      # campaign with the nightly modules
