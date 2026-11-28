@@ -897,7 +897,7 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PWM-03",
    "title": "Getters after initUnit return the unit's state",
-   "criterion": "getPeriod 27200, getPeriodUs 5; getModulation/getSwitchConvention/getMode agree with UDM/SWPA; getResolutionPs 184 (PwmHAL.h table); getPeriodMax 0xFFDF and getPeriodMin 0x60 (RM0440, CKPSC 0); 0 < getFrequencyMin <= 200 kHz <= getFrequencyMax; getAdcTrigger UNKNOWN_ADC before setAdcTrigger (PwmHAL.h); getEev, getAdcEdgeTrigger, getPeriodEvntRep defaults recorded",
+   "criterion": "getPeriod 27200, getPeriodUs 5; getModulation/getSwitchConvention/getMode agree with UDM/SWPA; getResolutionPs 184 (PwmHAL.h table); getPeriodMax 0xFFDF and getPeriodMin 0x60 (RM0440, CKPSC 0); 0 < getFrequencyMin <= 200 kHz <= getFrequencyMax; getAdcTrigger ADC_2 before setAdcTrigger (PWMA default routing, PwmHAL.h); getEev, getAdcEdgeTrigger, getPeriodEvntRep defaults recorded",
    "covers": [
     "spin.pwm.getPeriod",
     "spin.pwm.getPeriodUs",
@@ -916,18 +916,7 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-03.d",
-     "L0-PWM-03.e",
-     "L0-PWM-03.f",
-     "L0-PWM-03.g"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",
@@ -1096,15 +1085,7 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-12.e"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",
@@ -1254,15 +1235,7 @@
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-19.b"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",

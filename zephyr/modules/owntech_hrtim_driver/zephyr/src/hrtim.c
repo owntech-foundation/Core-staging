@@ -48,6 +48,9 @@ static uint32_t HRTIM_MINIM_FREQUENCY = TU_DEFAULT_FREQ;
 /** @brief User callback for ISR */
 static hrtim_callback_t user_callback = NULL;
 
+/** @brief User callbacks for the period event of TIMA..TIMF (MSTR uses user_callback) */
+static hrtim_callback_t tu_callback[HRTIM_STU_NUMOF] = {NULL};
+
 /* Default values to initialize all the timer */
 
 /** @brief Listing all timing units, TIMA to TIMF */
@@ -261,11 +264,14 @@ static inline unsigned _msb(unsigned v)
  *
  * @param freq Desired output frequency in Hz.
  * @param tu Pointer to the timer unit configuration structure to update.
+ * @param freq_mult 2 when the unit counts up-down (freq is then twice the
+ *        PWM frequency), else 1. Used for the frequency limits only.
  *
  * @return The actual frequency achieved after applying prescaler and rounding.
  *
  */
-static inline uint32_t _period_ckpsc(uint32_t freq, timer_hrtim_t *tu)
+static inline uint32_t _period_ckpsc(uint32_t freq, timer_hrtim_t *tu,
+                                     uint32_t freq_mult)
 {
 #if defined(CONFIG_SOC_SERIES_STM32F3X)
     uint32_t f_hrtim = hrtim_get_apb2_clock() * 2;
@@ -332,6 +338,24 @@ static inline uint32_t _period_ckpsc(uint32_t freq, timer_hrtim_t *tu)
     /* Stores the maximum and minimum duty cycle for the timing unit */
     tu->pwm_conf.duty_max = HRTIM_MAX_PER_and_CMP_REG_VALUES[tu->pwm_conf.ckpsc];
     tu->pwm_conf.duty_min = HRTIM_MIN_PER_and_CMP_REG_VALUES[tu->pwm_conf.ckpsc];
+
+    /* Limits of the unit at this prescaler (read by the PwmHAL getters).
+     * The counter runs at f_hrck = f_hrtim * 32 / 2^ckpsc. */
+    uint64_t f_hrck = ((uint64_t)f_hrtim * 32U) >> tu->pwm_conf.ckpsc;
+    tu->pwm_conf.resolution =
+        (uint32_t)((1000000000000ULL + f_hrck / 2U) / f_hrck);
+    tu->pwm_conf.max_period = HRTIM_MAX_PER_and_CMP_REG_VALUES[tu->pwm_conf.ckpsc];
+    tu->pwm_conf.min_period = HRTIM_MIN_PER_and_CMP_REG_VALUES[tu->pwm_conf.ckpsc];
+    /* Up-down counting halves the PWM frequency for a given counter period */
+    uint32_t div = freq_mult * (uint32_t)tu->pwm_conf.max_period;
+    tu->pwm_conf.max_frequency =
+        (uint32_t)(f_hrck / (freq_mult * (uint64_t)tu->pwm_conf.min_period));
+    uint32_t hw_min_frequency = (uint32_t)((f_hrck + div - 1U) / div);
+    /* Keep the minimum given at initialisation if it is higher */
+    if (tu->pwm_conf.min_frequency < hw_min_frequency)
+    {
+        tu->pwm_conf.min_frequency = hw_min_frequency;
+    }
 
     /* Stores the maximum and minimum duty cycle for the user */
     tu->pwm_conf.duty_max_user = tu->pwm_conf.period * 0.9;
@@ -484,7 +508,7 @@ void _init_master()
     /* At start-up, it is mandatory to initialize first the prescaler
      * bitfields before writing the compare and period registers. */
     timerMaster.pwm_conf.frequency =
-        _period_ckpsc(timerMaster.pwm_conf.frequency, &timerMaster);
+        _period_ckpsc(timerMaster.pwm_conf.frequency, &timerMaster, 1);
 
     /* master timer prescaler init */
     LL_HRTIM_TIM_SetPrescaler(HRTIM1,
@@ -778,7 +802,7 @@ void hrtim_tu_gpio_init(hrtim_tu_number_t tu_number)
 
     tu_channel[tu_number]->pwm_conf.frequency =
         _period_ckpsc(freq_mult * tu_channel[tu_number]->pwm_conf.frequency,
-                      tu_channel[tu_number]);
+                      tu_channel[tu_number], freq_mult);
 
     LL_HRTIM_TIM_SetPrescaler(HRTIM1,
                               tu_channel[tu_number]->pwm_conf.pwm_tu,
@@ -1429,11 +1453,74 @@ hrtim_adc_edgetrigger_t hrtim_adc_rollover_get(hrtim_tu_number_t tu_number)
     return tu_channel[tu_number]->adc_hrtim.adc_rollover;
 }
 
+/* Index of a slave timing unit (TIMA..TIMF) in list_tu, -1 for MSTR */
+static int _tu_index(hrtim_tu_t tu)
+{
+    for (int i = 0; i < (int)HRTIM_STU_NUMOF; i++)
+    {
+        if (list_tu[i] == tu)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* Period event ISR of a slave timing unit; arg is its index in list_tu */
+static void _hrtim_tu_callback(const void *arg)
+{
+    int i = (int)(uintptr_t)arg;
+
+    LL_HRTIM_ClearFlag_REP(HRTIM1, list_tu[i]);
+
+    if (tu_callback[i] != NULL)
+    {
+        tu_callback[i]();
+    }
+}
+
+/* IRQ line of each slave timing unit, in list_tu order */
+static const uint8_t HRTIM_TU_IRQ_NUMBER[HRTIM_STU_NUMOF] =
+#if defined(CONFIG_SOC_SERIES_STM32G4X)
+    {68, 69, 70, 71, 72, 74};
+#else
+    {68, 69, 70, 71, 72};
+#endif
+
+/* Connect the slave timing unit ISRs once (IRQ_CONNECT needs constants) */
+static void _hrtim_tu_irq_connect(void)
+{
+    static bool connected = false;
+
+    if (connected)
+    {
+        return;
+    }
+    IRQ_CONNECT(68, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)0, HRTIM_IRQ_FLAGS);
+    IRQ_CONNECT(69, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)1, HRTIM_IRQ_FLAGS);
+    IRQ_CONNECT(70, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)2, HRTIM_IRQ_FLAGS);
+    IRQ_CONNECT(71, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)3, HRTIM_IRQ_FLAGS);
+    IRQ_CONNECT(72, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)4, HRTIM_IRQ_FLAGS);
+#if defined(CONFIG_SOC_SERIES_STM32G4X)
+    IRQ_CONNECT(74, HRTIM_IRQ_PRIO, _hrtim_tu_callback, (void *)5, HRTIM_IRQ_FLAGS);
+#endif
+    connected = true;
+}
+
 void hrtim_PeriodicEvent_configure(hrtim_tu_t tu, uint32_t repetition,
                                    hrtim_callback_t callback)
 {
-    /* Memorize user callback */
-    user_callback = callback;
+    /* Memorize user callback: the master's (critical task) and each
+       slave timing unit's are kept apart */
+    int i = _tu_index(tu);
+    if (i < 0)
+    {
+        user_callback = callback;
+    }
+    else
+    {
+        tu_callback[i] = callback;
+    }
 
     /* Set repetition counter to repetition-1 so that an event
      * is triggered every "repetition" number of periods.
@@ -1443,6 +1530,17 @@ void hrtim_PeriodicEvent_configure(hrtim_tu_t tu, uint32_t repetition,
 
 void hrtim_PeriodicEvent_en(hrtim_tu_t tu)
 {
+    int i = _tu_index(tu);
+    if (i >= 0)
+    {
+        /* Slave timing unit: its own IRQ line, the master's is untouched */
+        _hrtim_tu_irq_connect();
+        LL_HRTIM_ClearFlag_REP(HRTIM1, tu);
+        LL_HRTIM_EnableIT_REP(HRTIM1, tu);
+        irq_enable(HRTIM_TU_IRQ_NUMBER[i]);
+        return;
+    }
+
     if (LL_HRTIM_GetSyncInSrc(HRTIM1) == LL_HRTIM_SYNCIN_SRC_NONE)
     {
         /* Enabling the interrupt on repetition counter event*/
@@ -1467,6 +1565,15 @@ void hrtim_PeriodicEvent_en(hrtim_tu_t tu)
 
 void hrtim_PeriodicEvent_dis(hrtim_tu_t tu)
 {
+    int i = _tu_index(tu);
+    if (i >= 0)
+    {
+        /* Slave timing unit: leave the master's IRQ (critical task) on */
+        LL_HRTIM_DisableIT_REP(HRTIM1, tu);
+        irq_disable(HRTIM_TU_IRQ_NUMBER[i]);
+        return;
+    }
+
     irq_disable(HRTIM_IRQ_NUMBER);
     /* Disabling the interrupt on repetition counter event */
     LL_HRTIM_DisableIT_REP(HRTIM1, tu);

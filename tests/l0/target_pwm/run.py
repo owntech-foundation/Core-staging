@@ -334,8 +334,8 @@ def p1(b, sc):
                  f'{PER_MAX[0]:#x}, {CMP_MIN[0]:#x} (RM0440)', f'{ret[1]:#x}, {ret[2]:#x}')
     good &= line(f'{cid}.f', 0 < ret[4] <= 200000 <= ret[5], 'getFrequencyMin <= 200 kHz <= getFrequencyMax',
                  'both non-zero, bracketing the running frequency', f'min {ret[4]} Hz, max {ret[5]} Hz')
-    good &= line(f'{cid}.g', s32(ret[11]) == -1, 'getAdcTrigger before setAdcTrigger',
-                 'UNKNOWN_ADC (-1, PwmHAL.h)', s32(ret[11]))
+    good &= line(f'{cid}.g', s32(ret[11]) == 2, 'getAdcTrigger before setAdcTrigger: the driver default',
+                 'ADC_2 (PWMA default routing, PwmHAL.h)', s32(ret[11]))
     line(f'{cid}.h', 'INFO', 'defaults of getEev, getAdcEdgeTrigger, getPeriodEvntRep', 'recorded',
          f'EEV{ret[10]}, edge {ret[12]} (0 up, 1 down, 2 both), repetition {ret[13]}')
 

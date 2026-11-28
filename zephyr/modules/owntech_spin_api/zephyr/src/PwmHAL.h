@@ -295,10 +295,11 @@ public:
      uint16_t getPeriodMax(hrtim_tu_number_t pwmX);
 
      /**
-      * @brief This function returns the period of the selected timing unit
+      * @brief This function returns the minimum period of the selected timing unit
       *
       * @param[in] pwmX  PWM Unit: `PWMA`,`PWMB`,`PWMC`,`PWMD`,`PWME`,`PWMF`
       * @return     the period value in number of clock cycles
+      *             (RM0440 limit at the unit's prescaler)
       */
      uint16_t getPeriodMin(hrtim_tu_number_t pwmX);
 
@@ -332,8 +333,13 @@ public:
       * @param[in] pwmX  PWM Unit: `PWMA`,`PWMB`,`PWMC`,`PWMD`,`PWME`,`PWMF`
       * @return ADC number: `ADC_1`,`ADC_2`,`ADC_3`,`ADC_4`,`ADC_5` or 
       *
-      * `UNKNOWN_ADC` if the ADC trigger was not configured
-      *                  for this timing unit.
+      * `UNKNOWN_ADC` if the timing unit's ADC trigger is not routed
+      *                  to an ADC.
+      *
+      * @note Before any `setAdcTrigger()`, this returns the driver's
+      *       default routing, which `enableAdcTrigger()` uses:
+      *       `PWMA` -> `ADC_2`, `PWMC` -> `ADC_1`, the other units
+      *       `UNKNOWN_ADC`.
       */
      adc_t getAdcTrigger(hrtim_tu_number_t pwmX);
 
@@ -438,6 +444,9 @@ public:
       * @brief This function configures the interrupt on repetition counter
       *
       * @param[in] PWM_tu PWM Unit:`TIMA`,`TIMB`,`TIMC`,`TIMD`,`TIME`,`TIMF`
+      *            Each unit has its own callback and interrupt line;
+      *            the master timer's period event (critical task) is not
+      *            affected.
       * 
       * @param[in] repetition 	Number of repetition before the interruption
       *                            on repetition counter event
@@ -473,7 +482,10 @@ public:
 
      /**
       * @brief     	          This function returns the minimum frequency
-      *                       of the selected timer in Hz
+      *                       of the selected timer in Hz: the lowest
+      *                       `setFrequency()` accepts, i.e. the minimum
+      *                       given at initialisation or, if higher, the
+      *                       lowest the unit's prescaler can reach
       *
       * @param[in] pwmX  PWM Unit: `PWMA`,`PWMB`,`PWMC`,`PWMD`,`PWME`,`PWMF`
       */
