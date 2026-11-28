@@ -99,6 +99,37 @@ jobs:
             echo
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # The bench lock (tests/common/bench_lock.sh) is held from here to the last bench step: taken step by step,
+      # it was free between the campaign and the restore after it, and another bench user could slip in.
+      - name: Take the bench for the whole job
+        run: |
+          lock=${SPOC_BENCH_LOCK:-/run/lock/spoc-bench.lock}
+          [ -e "$lock" ] || (umask 0; : >"$lock")
+          hold="$RUNNER_TEMP/bench-hold"
+          rm -f "$hold.ready"
+          who="$(id -un) job $GITHUB_RUN_ID since $(date +%T): SPOC bench workflow, PR #$PR"
+          # A detached holder keeps the lock's file descriptor open until it is killed (last step) or until the
+          # runner cleans up the job's processes, so a failed job never leaves the bench locked.
+          bash -c '
+            exec 9<"$1" || exit 1
+            flock 9
+            (umask 0; echo "$2" >"$1.who") 2>/dev/null
+            : >"$3.ready"
+            exec sleep infinity
+          ' bench-hold "$lock" "$who" "$hold" </dev/null >/dev/null 2>&1 &
+          echo $! >"$hold.pid"
+          waited=0
+          until [ -e "$hold.ready" ]; do
+            kill -0 "$(cat "$hold.pid")" 2>/dev/null || { echo "::error::could not take the bench lock"; exit 1; }
+            sleep 2
+            [ -e "$hold.ready" ] || [ $waited = 1 ] ||
+              echo "bench busy ($(cat "$lock.who" 2>/dev/null || echo unknown)); waiting for it"
+            waited=1
+          done
+          # bench_lock() in the later steps sees this and does not wait on the lock this job already holds
+          echo "SPOC_BENCH_LOCKED=1" >>"$GITHUB_ENV"
+          echo "bench taken: $who"
+
       - name: Bench to rest (CUT on Core-CUT)
         run: bash .bench-main/tests/common/bench_restore.sh
 
@@ -132,6 +163,13 @@ jobs:
       - name: Bench to rest after the campaign
         if: always()
         run: bash .bench-main/tests/common/bench_restore.sh
+
+      - name: Release the bench
+        if: always()
+        run: |
+          pid=$(cat "$RUNNER_TEMP/bench-hold.pid" 2>/dev/null) || exit 0
+          kill "$pid" 2>/dev/null || true
+          echo "bench released"
 
   comment:
     needs: bench
