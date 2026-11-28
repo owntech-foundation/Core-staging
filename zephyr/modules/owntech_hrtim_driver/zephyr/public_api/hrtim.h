@@ -349,6 +349,9 @@ void hrtim_duty_cycle_set(hrtim_tu_number_t tu_number, uint16_t value);
  * @param[in] tu_number        Timing unit number:
  *                  `MSTR`, `TIMA`, `TIMB`, `TIMC`, `TIMD`, `TIME`, `TIMF`
  * @param[in] shift        The desired phase shift value
+ *
+ * @note Timer A is the phase reference and is never shifted:
+ *       for `TIMA` this function does nothing.
  */
 void hrtim_phase_shift_set(hrtim_tu_number_t tu_number, uint16_t shift);
 

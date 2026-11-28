@@ -206,6 +206,9 @@ public:
       *
       * @warning Use this function AFTER setting the frequency
       *          and initializing the chosen timer
+      *
+      * @note `PWMA` is the phase reference and cannot be phase shifted:
+      *       `setPhaseShift(PWMA, ...)` is ignored and leaves timer A untouched.
       */
      void setPhaseShift(hrtim_tu_number_t pwmX, int16_t shift);
 
