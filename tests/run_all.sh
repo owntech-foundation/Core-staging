@@ -122,6 +122,10 @@ if [ -x "$repo/.venv/bin/python" ]; then
 else
     echo "Review page skipped: no .venv (python3 -m venv .venv && .venv/bin/pip install -r tests/requirements.txt)."
 fi
+# The API coverage matrix with this campaign's results: picture and Markdown in the campaign folder (job summary,
+# graduation report; tests/common/coverage.py, Core-staging#45).
+python3 "$repo/tests/common/coverage.py" render --campaigns "$(dirname "$out")" --write "$out" > /dev/null ||
+    echo "Coverage matrix not written (see the error above)."
 # Where the whole validation stands, across campaigns (standard library only).
 python3 "$repo/tests/common/control_center.py" --out "$(dirname "$out")" ||
     echo "Control center not updated (see the error above)."

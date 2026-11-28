@@ -51,12 +51,27 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`runner/`](runner/README.md) | The self-hosted runner that runs campaigns on the SPOC bench for pull requests: setup, hook, udev rules |
 | [`catalogue.json`](catalogue.json) | Every test, defined once |
+| [`coverage_gaps.json`](coverage_gaps.json) | Coverage matrix: the gap reason and target tier of each public call no test covers yet (second Spin, Safety pending graduation, module not built yet, unwrapped driver call, …) |
 | [`requirements.txt`](requirements.txt) | Python packages of the review page |
 | `out/` | Campaigns and `control-center.html` (git-ignored) |
 
+## Coverage matrix
+
+The matrix of the API regression suite (#35, #45) is generated, never written by hand: every public call (`tools/api_calls.py list`, the build tier's inventory) against the tiers whose tests cover it (`covers`, `tier`, `target_tier` in `catalogue.json`), with the newest campaign result of each test, the baseline (`pre-zephyr-4.4`) verdicts, and the timing marks (`l0/target_timing/reference.json`). A call no test covers is a gap, with its reason in [`coverage_gaps.json`](coverage_gaps.json).
+
+```bash
+python3 tests/common/coverage.py check     # exit 1 if a public call has no matrix row (CI: .github/workflows/coverage.yml)
+python3 tests/common/coverage.py render    # tests/out/coverage/{coverage.svg,coverage.md,matrix.json}
+python3 tests/common/coverage.py render --campaigns <other>/tests/out --write /tmp/cov   # from another checkout's campaigns (read only)
+```
+
+Every campaign also writes `coverage.svg` and `coverage.md` into its folder (the SPOC job summary shows `coverage.md`), and the control center has an **API coverage** card, a **Coverage** tab (latest campaign of each tier, the picture, calls by module with their gap reasons) and the cost-per-call table in the **Timing** tab.
+
+**Coverage rule**: a PR that adds or changes a public call adds its test (`covers`) or its gap entry. Once a test covers a call, remove its gap entry (the check warns).
+
 ## Adding a test
 
-1. Add it to `catalogue.json` (tab, level, title, criterion, conditions, source, status) and run `python3 tests/common/catalogue.py`. IDs look like `L0-ABC-01`.
+1. Add it to `catalogue.json` (tab, level, title, criterion, conditions, source, status; for an API test also `covers`, `tier`, `target_tier`, `depth`) and run `python3 tests/common/catalogue.py` and `python3 tests/common/coverage.py check`. IDs look like `L0-ABC-01`.
 2. Write it in `tests/l0/<name>/` with a `run.sh` and a `README.md`; add its object code to `object_code()` in `run_all.sh`. If it reflashes the CUT, put a `## @flashes-cut` line in its `run.sh` header: the runner runs it after the SPOC tests. Each criterion prints one result line: `@@<TAB>ID<TAB>PASS|FAIL|INFO|BLOCKED<TAB>what<TAB>expected<TAB>measured`.
 3. **Results reach the control center only from a campaign under `tests/out/`**: `run_all.sh`, or a `run.sh` that writes a campaign of its own. Never report results into a scratch folder.
 4. **Done means visible**: run it through a campaign, open `tests/out/control-center.html`, check the test shows its newest result and its link opens the review page.

@@ -7,6 +7,8 @@
 ##   Also run at the end of every campaign (tests/run_all.sh) and study (tests/l1/study.py).
 ## @par What it shows
 ##   Tabs from tests/catalogue.json (Test bench, Model, Boost, Grid observer, Inverter, Application, Timing).
+##   API coverage (tests/common/coverage.py, Core-staging#45): an overview card, a Coverage tab (latest campaign of each
+##   tier, the matrix picture, calls by module with gap reasons) and the cost-per-call table in the Timing tab.
 ##   For each test: definition, implementation state, and the latest result found in tests/out
 ##   (newest campaign containing that test), with a link to that campaign's review page; study
 ##   runs listed under the tests they inform (exploratory, they never set a verdict).
@@ -260,7 +262,14 @@ regenerate: <code>python3 tests/common/control_center.py</code></div>
     p.append('<div class="latest"><b>Latest runs</b> <span class="sub">(newest first; reload this page after a run)</span><ul>'+''.join(
         f'<li><a href="{e(link)}">{e(name)}</a> <span class="sub">{e(kind)} · {dt.datetime.fromtimestamp(w).strftime("%Y-%m-%d %H:%M") if w else ""} · {ago(w) if w else ""} · {e(summary)}</span></li>'
         for w,kind,name,link,summary in runs[:5])+'</ul></div>')
-    p.append('<div class="overview">')
+    # Coverage matrix (tests/common/coverage.py, #45): overview card, Coverage tab, cost-per-call table in Timing.
+    try:
+        import coverage
+        cov=coverage.sections(cat,camps)
+    except Exception as ex:  # the control center must not depend on it
+        print(f'coverage matrix not shown: {ex!r}',file=sys.stderr)
+        cov={'overview':'','tabs':[],'append':{}}
+    p.append('<div class="overview">'+cov['overview'])
     tabs=cat['tabs']
     for tab in tabs:
         tests=[t for t in cat['tests'] if t['tab']==tab['id']]
@@ -269,7 +278,8 @@ regenerate: <code>python3 tests/common/control_center.py</code></div>
                  f'<span class="sub">{len(tests)} tests: {e(summary_text(counts))}</span></button>')
     p.append('</div><div class="sub">Legend: ✓ passed · ✗ failing (filled: new, outlined: known issue) · – blocked · ○ implemented, not run yet · ◌ not implemented</div>')
     p.append('<nav class="tabs" role="tablist">'+''.join(
-        f'<button role="tab" data-tab="{e(t["id"])}" aria-selected="false">{e(t["title"])}</button>' for t in tabs)+
+        f'<button role="tab" data-tab="{e(t["id"])}" aria-selected="false">{e(t["title"])}</button>' for t in tabs)+''.join(
+        f'<button role="tab" data-tab="{e(i)}" aria-selected="false">{e(title)}</button>' for i,title,_ in cov['tabs'])+
         '<button role="tab" data-tab="runs" aria-selected="false">Runs</button></nav>')
     for tab in tabs:
         tests=[t for t in cat['tests'] if t['tab']==tab['id']]
@@ -286,7 +296,9 @@ regenerate: <code>python3 tests/common/control_center.py</code></div>
                      +('<th>Hardware</th>' if hw else '')+'</tr>')
             for t in rows:p.append(test_row(t,latest.get(t['id']),states[t['id']],studs,findings,hw))
             p.append('</table></div>')
+        p.append(cov['append'].get(tab['id'],''))
         p.append('</section>')
+    for i,_,body in cov['tabs']:p.append(f'<section id="tab-{e(i)}" hidden>{body}</section>')
     p.append('<section id="tab-runs" hidden><h2>Campaigns</h2><div class="wrap"><table><tr><th>Campaign</th><th>When</th><th>Results</th></tr>')
     for c in camps[:30]:
         v={k:sum(r['verdict']==k for r in c['rows']) for k in ('PASS','FAIL','INFO','BLOCKED')}

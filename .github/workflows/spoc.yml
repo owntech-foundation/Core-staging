@@ -121,6 +121,12 @@ jobs:
           echo "verdict=${verdict:-UNKNOWN}" >> "$GITHUB_OUTPUT"
           echo "summary=${summary}" >> "$GITHUB_OUTPUT"
 
+      - name: Coverage matrix
+        if: always()
+        run: |
+          cov=$(ls -1d tests/out/*/coverage.md 2>/dev/null | tail -1)
+          [ -n "$cov" ] && cat "$cov" >> "$GITHUB_STEP_SUMMARY" || echo "No coverage matrix written." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload the campaign
         if: always()
         uses: actions/upload-artifact@v7
