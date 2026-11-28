@@ -916,17 +916,7 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-03.d",
-     "L0-PWM-03.e",
-     "L0-PWM-03.f"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",
@@ -1095,15 +1085,7 @@
    ],
    "depth": "effect",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-12.e"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",
@@ -1253,15 +1235,7 @@
    ],
    "depth": "signal",
    "tier": "per-PR",
-   "target_tier": "per-PR",
-   "known_failure": {
-    "issue": "#60",
-    "url": "https://github.com/owntech-foundation/Core-staging/issues/38",
-    "criteria": [
-     "L0-PWM-19.b"
-    ],
-    "note": "Found by L0-PWM on main 2026-11-27; small-fix ticket Core-staging#60 (getters read fields nothing writes; getAdcTrigger default; period event IRQ 67 only)"
-   }
+   "target_tier": "per-PR"
   },
   {
    "tab": "pwm",
