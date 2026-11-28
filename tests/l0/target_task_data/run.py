@@ -45,7 +45,7 @@ FIELDS = (['magic', 'layout', 'boot_count', 'ack', 'busy', 'step', 'err', 'cycle
 STEP = dict(CREATE_CRIT=1, START_CRIT=2, STOP_CRIT=3, CREATE_BG=4, START_BG=5, STOP_BG=6, BG_CONFIG=7, BG_RESET=8,
             MASK=9, PWM=10, ENABLE=20, TRIG_SRC=21, DISC=22, START=23, STOP=24, STARTED=25, TRIGGER=26, RAW=27,
             VALUES=28, PEEK=29, LATEST=30, CONVERT=31, SET_LIN=32, SET_NTC=33, GET_PARAM=34, STORE=35, RETRIEVE=36,
-            NVS_DELETE=37, DAC=38, HEAP_PROBE=39, CRIT_DATA=40)
+            NVS_DELETE=37, DAC=38, HEAP_PROBE=39, CRIT_DATA=40, NVS_INFO=41)
 HRTIM, TIM6 = 0, 1
 FN_COUNTER, FN_NULL, FN_DATA = 0, 1, 2
 ADC_1, ADC_2 = 1, 2
@@ -434,6 +434,9 @@ def pd1(b):
 
     # NVS: entries for pins 52 (linear) and 51 (NTC), retrieved after the reset in PD2.
     cid = 'L0-TKD-21'
+    ret = b.ret('NVS_INFO')
+    line(f'{cid}.g', 'INFO', 'NVS before the store: storage version in NVS, current version, free bytes', 'recorded',
+         f'in NVS {ret[0]:#06x}, current {ret[1]:#06x}, free {s32(ret[2])}')
     b.step('SET_LIN', PIN_LIN, f32(LIN52[0]), f32(LIN52[1]))
     rc = s32(b.ret('STORE', PIN_LIN)[0])
     good &= line(f'{cid}.a', rc == 0, 'storeConversionParametersInMemory(52), linear 0.25 / 3', 'returns 0', rc)
@@ -560,6 +563,12 @@ def pd1(b):
     v = fl(b.ret('CONVERT', PIN_NONE, 1000)[0])
     good &= line(f'{cid}.c', v == DOC_ERROR, 'convertValue on a pin with no ADC', 'returns -5000 (DataAPI.h)', fv(v))
 
+    cid = 'L0-TKD-23'
+    ret = b.ret('HEAP_PROBE', 100)
+    good &= line(f'{cid}.a', ret[0] == ret[1], 'heap bytes allocated around 100 rounds of the hot-path calls',
+                 'unchanged (triggerAcquisition, getRawValues, getValues, peekLatestValue, getLatestValue, convertValue)',
+                 f'{ret[0]} -> {ret[1]} bytes over {ret[2]} calls')
+
     cid = 'L0-TKD-22'
     rc = s32(b.ret('STOP')[0])
     good &= line(f'{cid}.a', rc == 0, 'stop()', 'returns 0', rc)
@@ -569,18 +578,21 @@ def pd1(b):
     good &= line(f'{cid}.c', rc == -1, 'stop() a second time', 'returns -1 (DataAPI.h)', rc)
     ret = b.ret('RAW', PIN_DAC)
     good &= line(f'{cid}.d', ret[0] == 0, 'getRawValues(34) after stop()', '0 values', f'{ret[0]} value(s)')
-    rc = s32(b.ret('START')[0])
-    good &= line(f'{cid}.e', rc == 0, 'start() again after stop()', 'returns 0', rc)
+
+    # Last in PD1: on main the firmware stops answering in start() after stop() (known failure).
+    try:
+        rc = s32(b.ret('START')[0])
+    except TimeoutError:
+        rc = None
+    good &= line(f'{cid}.e', rc == 0, 'start() again after stop()', 'returns 0',
+                 'no acknowledgement: the firmware hangs in start()' if rc is None else rc)
+    if rc is None:
+        line(f'{cid}.f', 'FAIL', 'samples after the restart (2 triggers)', f'2 values, 3000 ±{DAC_TOL}', 'not run (start hung)')
+        return False
     b.step('TRIGGER', ADC_2, 2)
     ret = b.ret('RAW', PIN_DAC)
     good &= line(f'{cid}.f', ret[0] == 2 and abs(ret[2] - 3000) <= DAC_TOL, 'samples after the restart (2 triggers)',
                  f'2 values, 3000 ±{DAC_TOL}', f'{ret[0]} value(s), last {ret[2]}')
-
-    cid = 'L0-TKD-23'
-    ret = b.ret('HEAP_PROBE', 100)
-    good &= line(f'{cid}.a', ret[0] == ret[1], 'heap bytes allocated around 100 rounds of the hot-path calls',
-                 'unchanged (triggerAcquisition, getRawValues, getValues, peekLatestValue, getLatestValue, convertValue)',
-                 f'{ret[0]} -> {ret[1]} bytes over {ret[2]} calls')
     return good
 
 
@@ -648,19 +660,19 @@ def pd2(b):
     ok = runs >= 0.9 * dt * 1e4 and alive is not None
     good &= line(f'{cid}.c', ok, 'the TIM6 task keeps running with the hot-path calls, the board alive',
                  f'>= 90 % of 10000 runs/s over {dt:.1f} s, executor answering', f'{runs} runs')
-    nv, nr, dv = c[0] - a[0], c[1] - a[1], c[3] - a[3]
+    nv, dv = c[0] - a[0], c[3] - a[3]
     # 100 us = 20 PWM periods, ADC2 alternates two channels: 10 samples per channel per run.
     exp = runs * 10
-    good &= line(f'{cid}.d', abs(nv - exp) <= 0.02 * exp and abs(nr - exp) <= 0.02 * exp,
-                 'getValues(35) and getRawValues(34) in the task: every sample', f'{exp} each (10 per run) ±2 %',
-                 f'getValues {nv}, getRawValues {nr}')
+    good &= line(f'{cid}.d', abs(nv - exp) <= 0.02 * exp, 'getValues(35) in the task: every sample',
+                 f'{exp} (10 per run) ±2 %', f'getValues {nv}')
     last = fl(c[6])
     rawl = (last - LIN35[1]) / LIN35[0]
     good &= line(f'{cid}.e', fl(c[5]) == 510.0 and rawl == int(rawl) and 0 <= rawl <= 4095,
                  'convertValue and getValues in the task', 'convertValue(35, 1000) = 510; getValues = 0.5 raw + 10',
                  f'convertValue {fl(c[5]):g}; last value {last:g}')
-    good &= line(f'{cid}.f', abs(fl(c[4]) - 2000) <= DAC_TOL and abs(fl(c[2]) - 2000) <= DAC_TOL,
-                 'peekLatestValue(34) and getLatestValue(34) in the task', f'2000 ±{DAC_TOL} (DAC2 level)',
+    good &= line(f'{cid}.f', abs(fl(c[4]) - 2000) <= DAC_TOL and abs(fl(c[2]) - 2000) <= DAC_TOL and dv >= 0.99 * runs,
+                 'peekLatestValue(34) and getLatestValue(34, &dataValid) in the task',
+                 f'2000 ±{DAC_TOL} (DAC2 level); DATA_IS_OK in >= 99 % of runs (10 new samples each run)',
                  f'peek {fv(fl(c[4]))}, latest {fv(fl(c[2]))}, DATA_IS_OK in {dv} of {runs} runs')
     b.step('STOP_CRIT')
     return good

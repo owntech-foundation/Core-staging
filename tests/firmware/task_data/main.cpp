@@ -76,6 +76,7 @@ enum step_t : uint32_t {
 	S_DAC = 38,          /* a0 level: DAC2 channel 1 on PA6 (pin 34) */
 	S_HEAP_PROBE = 39,   /* a0 repeats: ret0 heap bytes allocated before, ret1 after the hot-path calls, ret2 calls */
 	S_CRIT_DATA = 40,    /* ret[] what the data critical task saw (see crit_data_task) */
+	S_NVS_INFO = 41,     /* ret0 version in NVS, ret1 current version, ret2 free space (int32) */
 };
 
 struct bg_stats_t {
@@ -105,7 +106,7 @@ struct tkd_report_t {
 	bg_stats_t bg[N_BG];     /* [1], [2]: the routines; [0] unused */
 	/* Data critical task (S_CREATE_CRIT a2 = 2), written in the interrupt */
 	uint32_t cd_values_n;    /* getValues(35) values in total */
-	uint32_t cd_raw_n;       /* getRawValues(34) values in total */
+	uint32_t cd_raw_n;       /* unused (getRawValues in the critical task: L0-ADD) */
 	uint32_t cd_latest;      /* float bits of getLatestValue(34, &dv) */
 	uint32_t cd_dv_ok;       /* runs with dataValid == DATA_IS_OK */
 	uint32_t cd_peek;        /* float bits of peekLatestValue(34) */
@@ -156,9 +157,8 @@ static void crit_data_task()
 	if (n > 0U && v != nullptr) {
 		g_tkd_report.cd_last_value = f2u(v[n - 1U]);
 	}
-	uint32_t m = 0;
-	(void)spin.data.getRawValues(34, m);
-	g_tkd_report.cd_raw_n = g_tkd_report.cd_raw_n + m;
+	/* getRawValues() in the critical task is L0-ADD's; here pin 34 is read with getLatestValue(), which
+	 * consumes its buffer (DataAPI.h: do not mix the two on one pin). */
 	g_tkd_report.cd_peek = f2u(spin.data.peekLatestValue(34));
 	uint8_t dv = 0xFF;
 	g_tkd_report.cd_latest = f2u(spin.data.getLatestValue(34, &dv));
@@ -437,6 +437,11 @@ static bool run_step(uint32_t step, const uint32_t *a)
 		r[5] = g_tkd_report.cd_convert;
 		r[6] = g_tkd_report.cd_last_value;
 		r[7] = g_tkd_report.crit_runs;
+		break;
+	case S_NVS_INFO:
+		r[0] = nvs_storage_get_version_in_nvs();
+		r[1] = nvs_storage_get_current_version();
+		r[2] = (uint32_t)nvs_storage_get_free_space();
 		break;
 	default:
 		return false;
