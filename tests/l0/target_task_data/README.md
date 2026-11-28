@@ -59,9 +59,18 @@ bash tests/l0/target_task_data/run.sh --run   # alone, under the bench lock; the
 
 ## Duration
 
-Measured on the SPOC CUT (2026-11-28, three runs): **131–134 s** for L0-TKD (build already cached: flash, three
-profiles, 114 steps; L0-TKD-25 records it in each campaign). A cold build adds about 55 s. With the folded-in tests the
-module's campaign time is L0-TKD + L0-CTK + L0-ADD + L0-PAD + L0-TIM (see the campaign record for theirs).
+Measured on the SPOC CUT (2026-11-28, campaign `2026-11-28_00e37b3_112027`): **L0-TKD 129 s** (flash with the build
+cached, three profiles, 114 steps; 131–134 s in the three runs before; L0-TKD-25 records it in each campaign). A cold
+build adds about 55 s. The whole module, with its folded-in tests, from the campaign's log times:
+
+| Test | Seconds |
+|---|---|
+| L0-TKD | 129 |
+| L0-CTK | 93 |
+| L0-ADD | 96 |
+| L0-PAD | 78 |
+| L0-TIM | 76 |
+| **Task and Data module** | **472 (about 8 min)** |
 
 ## Known failures on `main` (catalogue `known_failure`, issue #39)
 
@@ -71,5 +80,5 @@ module's campaign time is L0-TKD + L0-CTK + L0-ADD + L0-PAD + L0-TIM (see the ca
 | L0-TKD-18.c/.d, 19.e, 21.c | error returns are -2; DataAPI.h says -5000 (which an `int8_t` cannot even hold) |
 | L0-TKD-18.e | `convertValue` before `start()` with no parameters set reads through a null pointer (open question) |
 | L0-TKD-20.b | `getConversionParameterValue(r0/b/rdiv/t0)` returns the wrong NTC parameter (index off by two) |
-| L0-TKD-21.a/.b/.d/.e | `storeConversionParametersInMemory` returns -1 on the CUT; nothing to retrieve |
+| L0-TKD-21.a/.b/.d/.e | `storeConversionParametersInMemory` returns -1 on the CUT: the NVS flash write itself fails (`-EIO`, L0-TKD-21.g); nothing to retrieve |
 | L0-TKD-22.e/.f | `start()` after `stop()` never returns |
