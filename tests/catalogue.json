@@ -42,6 +42,15 @@
     "One firmware for the module (env PWM, tests/firmware/pwm): the host commands steps over SWD and judges the HRTIM registers it reads itself, the pins sampled on the chip and the scope through the SPOC MUX (CH1 and CH4, the two independent nodes, #5). On-target: `tests/run_all.sh --l0 --target`. Supervised rows (hand-held probes until #16) need `--supervised` and run only on Luiz's computer.",
     "Known failures (catalogue `known_failure`) fail on main and on the baseline: reported as known, they do not fail the campaign (#35). L0-HRI (Core#172) belongs to this module."
    ]
+  },
+  {
+   "id": "task_data",
+   "title": "Task and Data",
+   "question": "Does every task (TaskAPI) and spin.data (DataAPI) call do what its documentation says, on the chip? (API regression suite, Core-staging#35/#39)",
+   "notes": [
+    "One firmware for the module (env TKD, tests/firmware/task_data): the host commands steps over SWD and judges the returns, the run and loop counters, and the ADC and NVIC registers it reads itself. Folded in with their IDs: L0-CTK (createCritical range, task period on PA6), L0-ADD (dispatch under the critical task), L0-PAD (pin-to-ADC map); task timing and hot-path cost are L0-TIM (Timing tab). On-target: `tests/run_all.sh --l0 --target`.",
+    "The critical task is a zero-latency interrupt: no kernel call inside it (L0-TKD-05, docs/task_introduction.md). Known failures (catalogue `known_failure`) fail on main: reported as known, they do not fail the campaign (#35)."
+   ]
   }
  ],
  "tests": [
@@ -252,7 +261,7 @@
    "harness": "tests/l0/spoc_cal/run.sh --run"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -264,7 +273,7 @@
    "reports_only_failures": true
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -272,10 +281,12 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-01",
    "title": "Critical task test firmware builds and flashes over the ST-Link",
-   "criterion": "`pio run -e CTK -t upload` exits 0"
+   "criterion": "`pio run -e CTK -t upload` exits 0",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -283,10 +294,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-02",
    "title": "createCritical() refuses a period its source cannot produce (Core#174)",
-   "criterion": "returns -1: HRTIM 5000 us and 1285 us (.a1, .a2: over 256 periods of 5 us); TIM6 10000 us and 6554 us (.b1, .b2: over 6553 us)"
+   "criterion": "returns -1: HRTIM 5000 us and 1285 us (.a1, .a2: over 256 periods of 5 us); TIM6 10000 us and 6554 us (.b1, .b2: over 6553 us)",
+   "covers": [
+    "task.createCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -294,10 +311,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-03",
    "title": "createCritical() accepts the longest period of each source",
-   "criterion": "returns 0: HRTIM 1280 us (.a), TIM6 6553 us (.b)"
+   "criterion": "returns 0: HRTIM 1280 us (.a), TIM6 6553 us (.b)",
+   "covers": [
+    "task.createCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -305,10 +328,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-04",
    "title": "The accepted critical task runs at its period, on-chip",
-   "criterion": "runs against uptime over 4 s = 1280 us (.a), 6553 us (.b), ±1 %"
+   "criterion": "runs against uptime over 4 s = 1280 us (.a), 6553 us (.b), ±1 %",
+   "covers": [
+    "task.startCritical",
+    "task.createCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -316,10 +346,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-05",
    "title": "The accepted critical task runs at its period, on PA6",
-   "criterion": "PA6 toggled each run: 1 / (2 × FREQuency), median of 5 = 1280 us (.a), 6553 us (.b), ±1 %"
+   "criterion": "PA6 toggled each run: 1 / (2 × FREQuency), median of 5 = 1280 us (.a), 6553 us (.b), ±1 %",
+   "covers": [
+    "task.startCritical"
+   ],
+   "depth": "signal",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "bench",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "SPOC bench: CUT flashed with env CTK (tests/firmware/critical_task: HRTIM 200 kHz, unit A initialised, no output); MUX routes PA6 (mux1 input 6) to CH1",
    "source": "`tests/l0/target_critical_task/run.py`, `tests/firmware/critical_task/main.cpp`",
@@ -327,7 +363,9 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-CTK-06",
    "title": "Period actually run after an out-of-range period was accepted",
-   "criterion": "INFO, reported only when an out-of-range period is accepted (before Core#174's fix)"
+   "criterion": "INFO, reported only when an out-of-range period is accepted (before Core#174's fix)",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "bench",
@@ -408,7 +446,7 @@
    "criterion": "INFO: least-squares fit of PA6 voltage against level"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -420,7 +458,7 @@
    "reports_only_failures": true
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -428,10 +466,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-01",
    "title": "Data dispatch test firmware builds, flashes and starts its critical tasks",
-   "criterion": "`pio run -e ADD -t upload` exits 0; createCritical returns 0 in both boots (.a, .b)"
+   "criterion": "`pio run -e ADD -t upload` exits 0; createCritical returns 0 in both boots (.a, .b)",
+   "covers": [
+    "task.createCritical",
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -439,10 +484,19 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-02",
    "title": "No ADC sample lost under scheduler-managed dispatch (Core#161, #162)",
-   "criterion": "pin 35 fetched = elapsed PWM periods / 2 ±1 % over 4 s: on time (.a), with a 200 us late dispatch every 50 runs (.b)"
+   "criterion": "pin 35 fetched = elapsed PWM periods / 2 ±1 % over 4 s: on time (.a), with a 200 us late dispatch every 50 runs (.b)",
+   "covers": [
+    "spin.data.getRawValues",
+    "spin.data.configureTriggerSource",
+    "spin.data.configureDiscontinuousMode",
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -450,10 +504,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-03",
    "title": "peek() follows a channel nobody fetches (Core#173)",
-   "criterion": "peek(34) takes >= 4 distinct values in 8 reads, each within 150 LSB of the DAC sawtooth level"
+   "criterion": "peek(34) takes >= 4 distinct values in 8 reads, each within 150 LSB of the DAC sawtooth level",
+   "covers": [
+    "spin.data.peekLatestValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -461,10 +521,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-04",
    "title": "Nothing written past a full channel buffer (Core#161, #173)",
-   "criterion": "the halfword past each of pin 34's two buffers is unchanged over the test (.a, .b)"
+   "criterion": "the halfword past each of pin 34's two buffers is unchanged over the test (.a, .b)",
+   "covers": [
+    "spin.data.getRawValues"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -472,10 +538,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-05",
    "title": "A task whose DMA buffers exceed the heap keeps running (Core#175)",
-   "criterion": "5 ms TIM6 task with ADC1 + ADC2 acquisition: period 5000 us ±5 %, background alive"
+   "criterion": "5 ms TIM6 task with ADC1 + ADC2 acquisition: period 5000 us ±5 %, background alive",
+   "covers": [
+    "spin.data.enableAcquisition",
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -483,10 +556,12 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-06",
    "title": "Which ADCs give values when the heap is short",
-   "criterion": "INFO: NO_VALUE marks an ADC left out"
+   "criterion": "INFO: NO_VALUE marks an ADC left out",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env ADD (tests/firmware/data_dispatch: HRTIM 200 kHz, PWMA running; ADC2 pins 34/35 every period; DAC sawtooth on PA6); judged over SWD",
    "source": "`tests/l0/target_data_dispatch/run.py`, `tests/firmware/data_dispatch/main.cpp`",
@@ -494,7 +569,9 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-ADD-07",
    "title": "CPU left by the critical task and the dispatch",
-   "criterion": "INFO: background spins per second"
+   "criterion": "INFO: background spins per second",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "timing",
@@ -528,7 +605,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-TIM-02",
    "title": "Cost per call of the hot-path PWM and DataAPI calls (one row per call)",
-   "criterion": "N = 100 samples per call in the critical task, interrupts masked; mean/σ/worst cycles; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists"
+   "criterion": "N = 100 samples per call in the critical task, interrupts masked; mean/σ/worst cycles; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists",
+   "covers": [
+    "spin.data.getLatestValue",
+    "spin.data.peekLatestValue",
+    "spin.data.getRawValues",
+    "spin.data.getValues",
+    "spin.data.convertValue",
+    "spin.data.triggerAcquisition"
+   ],
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "timing",
@@ -539,7 +626,12 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-TIM-03",
    "title": "Critical-task period and jitter",
-   "criterion": "INFO: entry-to-entry period over 10000 runs, without (task0) and with (task) the scheduler's data dispatch: mean error in ppm, σ (jitter), worst"
+   "criterion": "INFO: entry-to-entry period over 10000 runs, without (task0) and with (task) the scheduler's data dispatch: mean error in ppm, σ (jitter), worst",
+   "covers": [
+    "task.startCritical"
+   ],
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "timing",
@@ -550,7 +642,13 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-TIM-04",
    "title": "Critical-task interrupt overhead and the scheduler's data dispatch",
-   "criterion": "entry latency, exit latency and their sum, without and with the dispatch, seen from a spinning background task; data.dispatch = their difference; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists"
+   "criterion": "entry latency, exit latency and their sum, without and with the dispatch, seen from a spinning background task; data.dispatch = their difference; mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists",
+   "covers": [
+    "task.startCritical",
+    "task.stopCritical"
+   ],
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "timing",
@@ -561,7 +659,12 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-TIM-05",
    "title": "Interrupts held off before the critical task; other interruptions",
-   "criterion": "irqHeldOff: HRTIM period event to interrupt taken (modulo the 5 us PWM period); mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists. otherIrq (INFO): background gaps holding no critical run"
+   "criterion": "irqHeldOff: HRTIM period event to interrupt taken (modulo the 5 us PWM period); mean within the reference + max(10 %, 3σ) + 50 cycles (regression above, \"improved: check it\" below the same margin); INFO while no reference exists. otherIrq (INFO): background gaps holding no critical run",
+   "covers": [
+    "task.startCritical"
+   ],
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "timing",
@@ -575,7 +678,7 @@
    "criterion": "Planned: period and pulse width of the PA6 marker on the MHO984 (BLOCKED: needs scope)"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -587,7 +690,7 @@
    "reports_only_failures": true
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -595,10 +698,12 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-01",
    "title": "Pin-to-ADC test firmware builds and flashes over the ST-Link",
-   "criterion": "`pio run -e PAD -t upload` exits 0"
+   "criterion": "`pio run -e PAD -t upload` exits 0",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -606,10 +711,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-02",
    "title": "enableAcquisition(pin) accepts exactly the ADC-capable Spin pins",
-   "criterion": "Returns 0 on the 24 ADC-capable pins (1, 2, 4, 5, 6, 12, 14, 24-27, 29-32, 34, 35, 37, 42-45, 51, 52), -1 on the others (Core-staging#50)"
+   "criterion": "Returns 0 on the 24 ADC-capable pins (1, 2, 4, 5, 6, 12, 14, 24-27, 29-32, 34, 35, 37, 42-45, 51, 52), -1 on the others (Core-staging#50)",
+   "covers": [
+    "spin.data.enableAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -617,10 +728,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-03",
    "title": "Each ADC-capable pin converts on its lowest-numbered ADC, at its own channel",
-   "criterion": "The ADC SQR sequences hold exactly the lowest-ADC ADCx_INy of each pin, per the STM32G474 pin map (Core-staging#50)"
+   "criterion": "The ADC SQR sequences hold exactly the lowest-ADC ADCx_INy of each pin, per the STM32G474 pin map (Core-staging#50)",
+   "covers": [
+    "spin.data.enableAcquisition",
+    "spin.data.start"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -628,10 +746,17 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-04",
    "title": "A value arrives on every ADC-capable pin through its default ADC",
-   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins, NO_VALUE on the others; floating pins: any value (Core-staging#50: pin 1)"
+   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins, NO_VALUE on the others; floating pins: any value (Core-staging#50: pin 1)",
+   "covers": [
+    "spin.data.peekLatestValue",
+    "spin.data.triggerAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -639,10 +764,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-05",
    "title": "enableAcquisition(pin, adc) accepts exactly the (pin, ADC) pairs the chip wires",
-   "criterion": "Returns 0 on the 36 pairs of the STM32G474 pin map, -1 on every other pin/ADC pair"
+   "criterion": "Returns 0 on the 36 pairs of the STM32G474 pin map, -1 on every other pin/ADC pair",
+   "covers": [
+    "spin.data.enableAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -650,10 +781,16 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-06",
    "title": "Each accepted (pin, ADC) pair converts its own channel",
-   "criterion": "Rank k of ADC n (SQR registers) is the channel of the k-th pin accepted on ADC n"
+   "criterion": "Rank k of ADC n (SQR registers) is the channel of the k-th pin accepted on ADC n",
+   "covers": [
+    "spin.data.enableAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
-   "tab": "target",
+   "tab": "task_data",
    "level": "L0",
    "conditions": "CUT (bare Spin) flashed with env PAD (tests/firmware/data_pins: no shield, no PWM; ADCs software-triggered every 10 ms); judged over SWD against the STM32G474 pin map and the Spin pinout",
    "source": "`tests/l0/target_data_pins/run.py`, `tests/firmware/data_pins/main.cpp`",
@@ -661,7 +798,13 @@
    "harness": "tests/run_all.sh --l0 --target",
    "id": "L0-PAD-07",
    "title": "A value arrives on every ADC-capable pin through the last ADC it was enabled on",
-   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins after enabling every pair"
+   "criterion": "peekLatestValue(pin) != NO_VALUE on the 24 ADC-capable pins after enabling every pair",
+   "covers": [
+    "spin.data.peekLatestValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
   },
   {
    "tab": "target",
@@ -1283,6 +1426,461 @@
    "id": "L0-PWM-22",
    "title": "Module duration",
    "criterion": "INFO: seconds from flash to the last profile, and steps run",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-00",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "Task and Data module failure before a reported criterion must fail the campaign",
+   "criterion": "Reported only when the script exits non-zero without reporting a FAIL itself.",
+   "source": "campaign runner (`tests/run_all.sh`)",
+   "status": "implemented",
+   "status_note": "Infrastructure fallback",
+   "reports_only_failures": true
+  },
+  {
+   "id": "L0-TKD-01",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "env TKD builds, flashes and answers its steps over SWD",
+   "criterion": "`pio run -e TKD -t upload` exits 0; the report reaches magic TKD1",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-02",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "createCritical refuses what TaskAPI.h refuses, and redefines a stopped task",
+   "criterion": "-1 for nullptr, for 102 us on source_hrtim (not a multiple of the 5 us PWM period) and while the task runs; 0 after stopCritical with source_tim6 200 us, which then runs at 5000 runs/s ±1 % (ranges per source: L0-CTK-02/03)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.createCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-03",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "startCritical: nothing before createCritical; startCritical(false) runs the task only",
+   "criterion": "No run when no task is defined; the 100 us HRTIM task at 10000 runs/s ±1 %; spin.data.started() stays false",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-04",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "stopCritical stops the task; startCritical resumes it",
+   "criterion": "No run over 0.3 s after stopCritical; 10000 runs/s ±1 % after startCritical again",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.stopCritical",
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-05",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "The critical task is a zero-latency interrupt: it runs while the kernel masks interrupts",
+   "criterion": "source_tim6: >= 95 of 100 runs during a 20 ms irq_lock(), and the TIM6 interrupt priority above irq_lock()'s BASEPRI; source_hrtim recorded (INFO)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.createCritical",
+    "task.startCritical"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-06",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "createBackground numbers the tasks and refuses past the maximum",
+   "criterion": "Returns 1 then 2 after the executor (task 0), then -1 past CONFIG_OWNTECH_TASK_MAX_ASYNCHRONOUS_TASKS (3)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.createBackground"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-07",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "startBackground / stopBackground",
+   "criterion": "A created task does not loop before startBackground; it loops after; stopBackground(1) freezes task 1 only; startBackground(1) resumes it; thread priority recorded (INFO)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.startBackground",
+    "task.stopBackground"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-08",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "suspendBackgroundMs: loop period",
+   "criterion": "suspendBackgroundMs(10): mean loop period 10.0 to 10.2 ms (never shorter, +2 kernel ticks)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.suspendBackgroundMs"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-09",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "suspendBackgroundUs: loop period",
+   "criterion": "suspendBackgroundUs(500) and (2500): mean loop period from the duration to the duration + 200 us (2 ticks of 100 us)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.suspendBackgroundUs"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-10",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "Before start(): started() false, no value, DATA_IS_MISSING",
+   "criterion": "started() false on a fresh boot; peekLatestValue NO_VALUE; getLatestValue NO_VALUE with DATA_IS_MISSING",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.started",
+    "spin.data.peekLatestValue",
+    "spin.data.getLatestValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-11",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "start / started; enableAcquisition after start is refused",
+   "criterion": "start() 0 then -1; started() true; enableAcquisition after start -1 (DataAPI.h)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.start",
+    "spin.data.started",
+    "spin.data.enableAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-12",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "configureTriggerSource: ADC CFGR EXTEN/EXTSEL, and the documented defaults",
+   "criterion": "TRIG_SOFTWARE: EXTEN 0; TRIG_PWM on ADC_2: EXTEN 1, EXTSEL 22 (HRTIM_ADC_TRG3); ADC_1 left at its default: TRIG_PWM per DataAPI.h (EXTEN 1, EXTSEL 21)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.configureTriggerSource"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-13",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "configureDiscontinuousMode: ADC CFGR DISCEN/DISCNUM",
+   "criterion": "Default DISCEN 0, DMAEN 1; configureDiscontinuousMode(ADC_2, 1): DISCEN 1, DISCNUM 0",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.configureDiscontinuousMode"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-14",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "triggerAcquisition + getRawValues: one sample per trigger, values follow the input",
+   "criterion": "No value before a trigger; 1 then 10 values per channel after 1 then 10 triggers, each at the DAC level ±150 LSB; consumed by the call; follows DAC2 from 1000 to 3000",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.triggerAcquisition",
+    "spin.data.getRawValues"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-15",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "peekLatestValue follows the input and does not consume",
+   "criterion": "Same value twice at the DAC level ±150 LSB; getRawValues still returns the 3 values; NO_VALUE on a pin with no ADC",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.peekLatestValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-16",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "getLatestValue and its dataValid flag",
+   "criterion": "DATA_IS_OK then DATA_IS_OLD with the same value; value = gain x raw + offset; works without dataValid; NO_VALUE + DATA_IS_MISSING on a pin with no ADC",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.getLatestValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-17",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "getValues: gain x raw + offset, one per sample",
+   "criterion": "5 values after 5 triggers, each 0.5 raw + 10 for an integer raw; default gain on pin 34 at the DAC level; 0 values when nothing new",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.getValues"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-18",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "convertValue: linear and NTC, errors",
+   "criterion": "convertValue(35, 1000) = 510 exactly (0.5 / 10); NTC within 0.05 °C of the Beta model; -5000 (DataAPI.h) on a pin with no ADC or not enabled; before start with no parameters set: 1000 or -5000, never a null read",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.convertValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-19",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "setConversionParametersLinear, getConversionParameterValue / Type",
+   "criterion": "Gain and offset read back, type conversion_linear; on a pin not enabled: type -5, value -5000 (DataAPI.h)",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.setConversionParametersLinear",
+    "spin.data.getConversionParameterValue",
+    "spin.data.getConversionParameterType"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-20",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "setConversionParametersNtcThermistor, read back",
+   "criterion": "Type conversion_therm; getConversionParameterValue(r0, b, rdiv, t0) returns the values set",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.setConversionParametersNtcThermistor",
+    "spin.data.getConversionParameterValue",
+    "spin.data.getConversionParameterType"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-21",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "store / retrieve conversion parameters across a reset",
+   "criterion": "store 0 for linear (pin 52) and NTC (pin 51); -5000 on a pin with no ADC (DataAPI.h); after a reset, retrieve 0 and the parameters back (linear, NTC); the entries are deleted afterwards",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.storeConversionParametersInMemory",
+    "spin.data.retrieveConversionParametersFromMemory"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-22",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "stop, and start again after stop",
+   "criterion": "stop() 0 then -1; started() false; no value after stop; start() 0 again and samples flow",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.stop",
+    "spin.data.start",
+    "spin.data.started"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-23",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "The hot-path DataAPI calls allocate nothing (Core-staging#56)",
+   "criterion": "System heap allocated bytes unchanged around 100 rounds of triggerAcquisition, getRawValues, getValues, peekLatestValue, getLatestValue, convertValue",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "spin.data.getRawValues",
+    "spin.data.getValues",
+    "spin.data.peekLatestValue",
+    "spin.data.getLatestValue",
+    "spin.data.convertValue",
+    "spin.data.triggerAcquisition"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-24",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "startCritical(true) on a TIM6 task making the hot-path DataAPI calls",
+   "criterion": "startCritical(true) starts the DataAPI; the 100 us zero-latency task runs >= 90 % of its rate for 2 s calling getValues, getRawValues, peekLatestValue, getLatestValue, convertValue: 10 samples per channel per run ±2 %, values right, board alive",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
+   "covers": [
+    "task.startCritical",
+    "task.createCritical",
+    "spin.data.getValues",
+    "spin.data.getRawValues",
+    "spin.data.peekLatestValue",
+    "spin.data.getLatestValue",
+    "spin.data.convertValue"
+   ],
+   "depth": "effect",
+   "tier": "per-PR",
+   "target_tier": "per-PR"
+  },
+  {
+   "id": "L0-TKD-25",
+   "tab": "task_data",
+   "level": "L0",
+   "title": "Module duration",
+   "criterion": "INFO: seconds from flash to the last profile, and steps run",
+   "source": "`tests/l0/target_task_data/run.py`, `tests/firmware/task_data/main.cpp`",
+   "status": "implemented",
+   "conditions": "SPOC bench, bare CUT flashed with env TKD (tests/firmware/task_data, a step executor over task and spin.data); returns, run and loop counters, ADC1/ADC2 and NVIC registers read over SWD; DAC2 drives PA6 (pin 34)",
+   "harness": "tests/run_all.sh --l0 --target",
    "tier": "per-PR",
    "target_tier": "per-PR"
   }
