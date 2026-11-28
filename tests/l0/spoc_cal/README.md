@@ -52,3 +52,5 @@ Firmware pins: `CUT_FW`, `MUX_FW` in [`tests/common/spoc/__init__.py`](../../com
 **Restoring Core-CUT** after an on-target test reflashed the CUT: `git worktree add --detach /tmp/core-cut 3a5df78` in a `SPOC_Software` clone, then `mkdir -p .pio/build/STLink/Kconfig && pio run -e STLink -t upload` there.
 
 History and findings: [SPOC bench notes](https://github.com/luizvilla/Core/blob/safety-hw/docs/safety/spoc_bench.md) (Core2, `safety-hw`).
+
+Each scope measurement (FREQuency, PDUTy, VTOP, VBASe) is the median of 5 valid readings. The MHO984 now and then answers a single reading as invalid while the signal is fine, so invalid readings are skipped, up to 10 readings per series, and the count skipped is shown in the measured value. A series with fewer than 5 valid readings in 10 is still `invalid` and fails. Before this, one invalid reading failed the series, and so the campaign about once in three runs ([#13](https://github.com/owntech-foundation/Core-staging/issues/13)).
