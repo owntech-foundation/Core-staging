@@ -75,6 +75,21 @@ A simple timer not related to the PWM can be used to compute the control task pe
             task.startCritical();
         ```
 
+!!! danger "The critical task is a zero-latency interrupt: no kernel calls inside"
+    The critical task runs in an interrupt above everything the operating system (Zephyr) schedules. With
+    `source_tim6` it is a *zero-latency* interrupt: the kernel never masks it, so it keeps its timing even while the
+    kernel works on its own data, and the kernel cannot protect that data from the task. With `source_hrtim` it is
+    the highest-priority interrupt the kernel manages (it waits while the kernel masks interrupts). Write every
+    critical task as a zero-latency one, whatever its source, so it can move from one source to the other:
+    **never call the kernel from a critical task**. No `printk`, `k_uptime_get()`, `k_sleep()`, `k_malloc()`,
+    mutexes, semaphores or message queues, and none of `task.suspendBackgroundMs()` / `task.suspendBackgroundUs()`.
+    Such a call can corrupt the kernel or fault the board, sometimes long after it was written.
+
+    What a critical task may call: the PWM and data hot-path calls (`spin.pwm.setDutyCycle()`,
+    `spin.data.getLatestValue()`, `spin.data.getValues()`, `spin.data.peekLatestValue()`, `spin.data.convertValue()`,
+    ...), GPIO and DAC writes, and plain computation. To log or time something, write it to a variable in the
+    critical task and print it or stamp it from a background task.
+
 !!! tip
     Having a control Task is required for [synchronous measurements](spin_dataAPI.md/#synchronous-with-pwms) to work correctly.
 

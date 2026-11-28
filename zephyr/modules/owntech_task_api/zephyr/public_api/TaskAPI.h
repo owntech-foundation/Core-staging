@@ -66,7 +66,18 @@ public:
 	 *        but the previously defined task must have been suspended
 	 *        (or never started). An error will be returned if the
 	 *        previously defined task is still running.
-	 * 
+	 *
+	 * @warning Write the critical task as a zero-latency interrupt:
+	 *        make NO kernel call inside it (no printk(), k_uptime_get(),
+	 *        k_sleep(), k_malloc(), mutex, semaphore, nor
+	 *        suspendBackgroundMs()/suspendBackgroundUs()). With
+	 *        source_tim6 it is one (IRQ_ZERO_LATENCY: the kernel never
+	 *        masks it, so a kernel call races the kernel and can fault
+	 *        the board); with source_hrtim it is the highest-priority
+	 *        kernel interrupt, and the same rule keeps the task portable
+	 *        between sources. Pass values to a background task through
+	 *        variables instead.
+	 *
 	 * @note  If the `HRTIM` is used to trigger the task (which is the
 	 *        default behavior), then the `HRTIM` must have been
 	 *        configured *before* calling this function.

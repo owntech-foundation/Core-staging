@@ -47,6 +47,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`l0/target_data_pins/`](l0/target_data_pins/README.md) | L0-PAD: DataAPI pin-to-ADC resolution on every Spin pin, on the chip (Core-staging#50) |
 | [`l0/target_safety_report/`](l0/target_safety_report/README.md) | L0-SAF: the Safety error thread reports the channel that tripped, and only it (Core-staging#47), on the chip |
 | [`l0/target_pwm/`](l0/target_pwm/README.md) | L0-PWM: the PWM module of the API regression suite: every `spin.pwm` call at effect depth over SWD, outputs/frequency/phase/convention on the scope through the MUX, latency to effect, Core#167 low duty (Core-staging#38). The pattern later modules copy |
+| [`l0/target_task_data/`](l0/target_task_data/README.md) | L0-TKD: the Task and Data module of the API regression suite: every `task` and `spin.data` call at effect depth on the chip; folds in L0-CTK, L0-ADD, L0-PAD and L0-TIM (Core-staging#39) |
 | [`l0/target_hrtim_reinit/`](l0/target_hrtim_reinit/README.md) | L0-HRI: an up-down HRTIM unit initialised again keeps its period and switching frequency (Core#172) |
 | [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`runner/`](runner/README.md) | The self-hosted runner that runs campaigns on the SPOC bench for pull requests: setup, hook, udev rules |
