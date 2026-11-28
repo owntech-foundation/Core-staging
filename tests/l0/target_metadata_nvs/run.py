@@ -45,7 +45,7 @@ FIELDS = (['magic', 'layout', 'boot_count', 'ack', 'busy', 'step', 'err'] + [f'r
 STEP = dict(SET_SPIN_SERIAL=1, GET_SPIN_SERIAL=2, SET_SHIELD_SERIAL=3, GET_SHIELD_SERIAL=4, SET_SPIN_VERSION=5,
             GET_SPIN_VERSION=6, SET_SHIELD_VERSION=7, GET_SHIELD_VERSION=8, SET_SPIN_PASSWORD=9, GET_SPIN_PASSWORD=10,
             SET_SHIELD_PASSWORD=11, GET_SHIELD_PASSWORD=12, SET_EXTRA=13, GET_EXTRA=14, CLEAR_META=15, NVS_INFO=20,
-            NVS_CLEAR_ALL=21, DATA_ENABLE=30, DATA_SET_LINEAR=31, DATA_STORE=32, DATA_RETRIEVE=33, DATA_GET=34,
+            NVS_CLEAR_ALL=21, NVS_STORE=22, NVS_RETRIEVE=23, DATA_ENABLE=30, DATA_SET_LINEAR=31, DATA_STORE=32, DATA_RETRIEVE=33, DATA_GET=34,
             SENS_ENABLE=40, SENS_SET_LINEAR=41, SENS_STORE=42, SENS_RETRIEVE=43, SENS_GET=44)
 
 # docs/spin_metaDataAPI.md (MetaDataAPI.h constants)
@@ -87,6 +87,8 @@ CASES = [
     ('L0-NVS-12', 'store/retrieve on a pin with no ADC channel: the documented error'),
     ('L0-NVS-13', 'the CUT\'s NVS partition written back byte for byte'),
     ('L0-NVS-14', 'module duration'),
+    ('L0-NVS-15', 'a store on the CUT\'s NVS as found (before the module clears it)'),
+    ('L0-NVS-16', 'nvs_storage_store_data / retrieve_data called directly'),
 ]
 
 
@@ -181,7 +183,7 @@ class Values:
     def __init__(self, rng):
         tag = ''.join(rng.choice('0123456789ABCDEF') for _ in range(6))
         self.tag = tag
-        self.text = {'SpinSerialNumber': f'SPN-{tag}-001'.encode(), 'ShieldSerialNumber': f'SHD-{tag}-002'.encode(),
+        self.text = {'SpinSerialNumber': f'SPN-{tag}-01'.encode(), 'ShieldSerialNumber': f'SHD-{tag}-02'.encode(),
                      'SpinPassword': f'PS{tag}01'.encode(), 'ShieldPassword': f'PH{tag}02'.encode()}
         assert [len(self.text[n]) for n, _, _, ln in TEXT_FIELDS] == [ln for _, _, _, ln in TEXT_FIELDS]
         self.version = {'SpinVersion': tuple(rng.randrange(1, 250) for _ in range(3)),
@@ -247,7 +249,7 @@ def first_boot(b, v):
     good = True
     ret, _ = b.step('NVS_INFO')
     cur, in_nvs0, free0 = ret[0], ret[1], ret[2]
-    line('L0-NVS-02.0', 'INFO', 'NVS as found on the CUT', 'recorded',
+    line('L0-NVS-02.0', 'INFO', 'NVS after the clear of L0-NVS-15.b and the raw entry of L0-NVS-16', 'recorded',
          f'current version {cur}, version in NVS {in_nvs0}, free {free0} B')
 
     # L0-NVS-03: argument errors (docs: -2 size/buffer, -3 slot); a refused getter writes nothing.
@@ -312,7 +314,7 @@ def first_boot(b, v):
     good &= line(f'{cid}.c', r[0] == SERIAL_LEN and out[:SERIAL_LEN] == v.text['SpinSerialNumber'] and
                  untouched(out, SERIAL_LEN), 'getSpinSerialNumber with a 20-byte buffer',
                  '13 bytes read, buffer untouched past them (not null-terminated, docs)', f'{r[0]}, {show(out[:r[0] if r[0] > 0 else 0])!r}')
-    new = f'SPN-{v.tag}-XYZ'.encode()
+    new = f'SPN-{v.tag}-XY'.encode()
     r1, _ = b.step('SET_SPIN_SERIAL', SERIAL_LEN, data=new)
     r2, out = b.step('GET_SPIN_SERIAL', SERIAL_LEN)
     good &= line(f'{cid}.d', r1[0] == 0 and r2[0] == SERIAL_LEN and out[:SERIAL_LEN] == new,
@@ -369,9 +371,13 @@ def after_restart(b, v, cid, what):
     r1, _ = b.step('DATA_RETRIEVE', DATA_PIN)
     r2, _ = b.step('SENS_RETRIEVE')
     pd, ps = params(b)
-    good &= line(f'{cid}.b', rd == 0 and rs == 0 and ps0[1:] == (V_HIGH_DT_GAIN, 0) and r1[0] == 0 and r2[0] == 0
-                 and pd[1:] == v.data and ps[1:] == v.sens, f'conversion parameters {what}',
-                 'V_HIGH at its devicetree default until retrieved; retrieve 0, 0; then the stored values (bit-exact)',
+    # Shield sensors load their stored parameters when the sensor list is built ("Parameters stored in permanent
+    # storage are automatically retrieved at board boot", Sensors.cpp, setTwistSensorsUserCalibrationFactors); a
+    # spin.data pin keeps its defaults until retrieveConversionParametersFromMemory.
+    good &= line(f'{cid}.b', rd == 0 and rs == 0 and ps0[1:] == v.sens and pd0[1:] != v.data and r1[0] == 0
+                 and r2[0] == 0 and pd[1:] == v.data and ps[1:] == v.sens, f'conversion parameters {what}',
+                 'V_HIGH already at its stored values (loaded at boot); pin 51 not until retrieved; retrieve 0, 0; '
+                 'then the stored values (bit-exact)',
                  f'before: pin {fmt_p(pd0)}, V_HIGH {fmt_p(ps0)}; retrieve {r1[0]}, {r2[0]}; '
                  f'after: pin {fmt_p(pd)}, V_HIGH {fmt_p(ps)}')
     ret, _ = b.step('NVS_INFO')
@@ -467,9 +473,32 @@ def dump_partition(path):
 
 
 def write_partition(path):
-    """Halts the CUT, writes the backup over the NVS partition (erase + program + verify), resets."""
-    r = th.openocd('reset halt', f'flash write_image erase {path} {NVS_ADDR:#x} bin',
-                   f'verify_image {path} {NVS_ADDR:#x} bin', 'reset run', check=False)
+    """Halts the CUT, erases the NVS partition and programs back only the double-words of the backup that are not
+    erased (0xFF), verifies the whole partition against the backup, resets.
+
+    Programming 0xFF over an erased double-word is not neutral on the STM32G4: the double-word reads 0xFF but can no
+    longer be programmed (its ECC is written), so a later NVS write there fails with -EIO. A plain
+    `flash write_image erase` of the 4 kB backup would leave every free slot in that state.
+    """
+    data = open(path, 'rb').read()
+    chunks, i = [], 0
+    while i < len(data):
+        if data[i:i + 8] == b'\xff' * 8:
+            i += 8
+            continue
+        j = i
+        while j < len(data) and data[j:j + 8] != b'\xff' * 8:
+            j += 8
+        chunks.append((i, data[i:j]))
+        i = j
+    with tempfile.TemporaryDirectory() as d:
+        cmds = ['reset halt', f'flash erase_address {NVS_ADDR:#x} {NVS_SIZE:#x}']
+        for k, (off, blob) in enumerate(chunks):
+            p = os.path.join(d, f'c{k}.bin')
+            open(p, 'wb').write(blob)
+            cmds.append(f'flash write_image {p} {NVS_ADDR + off:#x} bin')
+        cmds += [f'verify_image {path} {NVS_ADDR:#x} bin', 'reset run']
+        r = th.openocd(*cmds, check=False)
     return r.returncode == 0, (r.stdout + r.stderr)[-600:]
 
 
@@ -535,10 +564,55 @@ def main():
     return 0 if good else 1
 
 
+FLASH_SR = 0x40022010  # RM0440 FLASH_SR, then FLASH_CR, FLASH_ECCR
+RAW_ID = 0x7F01        # a key in no category of nvs_storage.h: used by nothing else
+
+
+def as_found(b):
+    """A store on the partition as the CUT had it, then the module clears it and works on an empty NVS."""
+    cid = 'L0-NVS-15'
+    good = True
+    ret, _ = b.step('NVS_INFO')
+    r1, _ = b.step('NVS_STORE', RAW_ID, 8, data=bytes(range(1, 9)))
+    sr = th.read_words(FLASH_SR, 1)
+    r2, _ = b.step('SET_SHIELD_VERSION', 9, 9, 9)
+    r3, _ = b.step('GET_SHIELD_VERSION')
+    good &= line(f'{cid}.a', r1[0] >= 0 and r2[0] == 0 and r3[0] == 0 and tuple(r3[1:4]) == (9, 9, 9),
+                 'nvs_storage_store_data and setShieldVersion on the NVS as found, read back',
+                 'store >= 0, setShieldVersion 0, getShieldVersion 0 (9, 9, 9)',
+                 f'version in NVS {ret[1]}, free {ret[2]} B; nvs_storage_store_data {r1[0]}'
+                 f'{" (-EIO)" if r1[0] == -5 else ""}, FLASH_SR {sr[0] if sr else 0:#010x} after it; '
+                 f'setShieldVersion {r2[0]}, getShieldVersion {r3[0]} {tuple(r3[1:4])}')
+    r, _ = b.step('NVS_CLEAR_ALL')
+    boot = b.reset()
+    ret, _ = b.step('NVS_INFO') if boot else ([None] * 3, b'')
+    good &= line(f'{cid}.b', r[0] == 0 and boot is not None and ret[1] == 0,
+                 'nvs_storage_clear_all_stored_data, reset: the module goes on with an empty NVS',
+                 'clear 0; after the reset version in NVS 0', f'clear {r[0]}; ' +
+                 ('no boot' if boot is None else f'version in NVS {ret[1]}, free {ret[2]} B'))
+    # L0-NVS-16: the driver calls themselves, on the empty NVS (nvs_storage.h: store "0 on success",
+    # retrieve "number of bytes read").
+    data = bytes(range(10, 26))
+    r1, _ = b.step('NVS_STORE', RAW_ID, len(data), data=data)
+    r2, o = b.step('NVS_RETRIEVE', RAW_ID, N_BYTES)
+    good &= line('L0-NVS-16.a', r1[0] == 0, 'nvs_storage_store_data(16 B) on an empty NVS', '0 (nvs_storage.h)',
+                 r1[0])
+    good &= line('L0-NVS-16.b', r2[0] == len(data) and o[:len(data)] == data and untouched(o, len(data)),
+                 'nvs_storage_retrieve_data of that entry', '16 (bytes read) and the bytes',
+                 f'{r2[0]}, {o[:max(r2[0], 0)].hex()}')
+    r3, _ = b.step('NVS_RETRIEVE', RAW_ID, 8)
+    r4, _ = b.step('NVS_STORE', RAW_ID, 0)
+    r5, _ = b.step('NVS_RETRIEVE', RAW_ID, N_BYTES)
+    good &= line('L0-NVS-16.c', r3[0] < 0 and r5[0] < 0, 'retrieve with a buffer too small; retrieve after a '
+                 '0-byte store (delete)', 'negative, negative', f'{r3[0]} (store of 0 B: {r4[0]}), {r5[0]}')
+    return good
+
+
 def run_phases(b, out):
     v = Values(random.Random())
     good = True
     t0 = time.monotonic()
+    good &= as_found(b)
     good &= first_boot(b, v)
     print(f'== first boot: {time.monotonic() - t0:.0f} s, {b.steps} steps', flush=True)
     boot0 = b.report()['boot_count']

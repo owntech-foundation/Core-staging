@@ -53,6 +53,8 @@ enum step_t : uint32_t {
 	S_CLEAR_META = 15,
 	S_NVS_INFO = 20,          /* ret0 current version, ret1 version in NVS, ret2 free space */
 	S_NVS_CLEAR_ALL = 21,
+	S_NVS_STORE = 22,         /* a0 id, a1 size, bytes in g_nvs_in: ret0 nvs_storage_store_data */
+	S_NVS_RETRIEVE = 23,      /* a0 id, a1 buffer size: ret0 nvs_storage_retrieve_data, out[] */
 	S_DATA_ENABLE = 30,       /* a0 pin, a1 ADC */
 	S_DATA_SET_LINEAR = 31,   /* a0 pin, a1 gain (float bits), a2 offset (float bits) */
 	S_DATA_STORE = 32,        /* a0 pin */
@@ -187,6 +189,14 @@ static bool run_step(uint32_t step, const uint32_t *a)
 		break;
 	case S_NVS_CLEAR_ALL:
 		put_ret(0, nvs_storage_clear_all_stored_data());
+		break;
+	case S_NVS_STORE:
+		if (a[1] > N_BYTES) return false;
+		put_ret(0, nvs_storage_store_data((uint16_t)a[0], in, (uint8_t)a[1]));
+		break;
+	case S_NVS_RETRIEVE:
+		if (a[1] > N_BYTES) return false;
+		put_ret(0, nvs_storage_retrieve_data((uint16_t)a[0], buf, (uint8_t)a[1]));
 		break;
 	case S_DATA_ENABLE:
 		put_ret(0, spin.data.enableAcquisition((uint8_t)a[0], (adc_t)a[1]));

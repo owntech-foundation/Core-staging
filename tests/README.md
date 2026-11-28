@@ -18,6 +18,7 @@ Without `.venv`, a campaign still writes `record.md` and the control center; onl
 tests/run_all.sh --l0            # every tests/l0/*/run.sh; on-target tests report BLOCKED
 tests/run_all.sh --l0 --target   # also the on-target tests: REFLASHES the Spin on the ST-Link
 tests/run_all.sh --l0 --target --supervised   # also the supervised rows (hand-held probes): prompts on the terminal
+tests/run_all.sh --l0 --target --nightly      # also the nightly-tier modules (L0-NVS: reflashes, NVS writes)
 tests/run_all.sh                 # L0, then tests/l1/run.sh when there is one
 bash tests/common/target_preflight.sh   # what on-target tests need, and how to fix what is missing
 bash tests/common/spoc_preflight.sh     # what the SPOC bench needs (CUT, MUX, MHO984)
@@ -47,6 +48,7 @@ Each campaign writes `tests/out/<date>_<sha>_<time>_<id>/` with one log per test
 | [`l0/target_data_pins/`](l0/target_data_pins/README.md) | L0-PAD: DataAPI pin-to-ADC resolution on every Spin pin, on the chip (Core-staging#50) |
 | [`l0/target_safety_report/`](l0/target_safety_report/README.md) | L0-SAF: the Safety error thread reports the channel that tripped, and only it (Core-staging#47), on the chip |
 | [`l0/target_pwm/`](l0/target_pwm/README.md) | L0-PWM: the PWM module of the API regression suite: every `spin.pwm` call at effect depth over SWD, outputs/frequency/phase/convention on the scope through the MUX, latency to effect, Core#167 low duty (Core-staging#38). The pattern later modules copy |
+| [`l0/target_metadata_nvs/`](l0/target_metadata_nvs/README.md) | L0-NVS: the MetaData / NVS module of the API regression suite: the 15 `spin.metaData` calls and the NVS store/retrieve paths across ST-Link resets and reflashes; backs the CUT's NVS up and writes it back (Core-staging#42). Nightly tier (`--nightly`) |
 | [`l0/target_hrtim_reinit/`](l0/target_hrtim_reinit/README.md) | L0-HRI: an up-down HRTIM unit initialised again keeps its period and switching frequency (Core#172) |
 | [`l0/spoc_cal/`](l0/spoc_cal/README.md) | L0-CAL: SPOC bench calibration (trim, cable check, gain and skew record) on the SPOC bench with the MHO984 |
 | [`runner/`](runner/README.md) | The self-hosted runner that runs campaigns on the SPOC bench for pull requests: setup, hook, udev rules |
