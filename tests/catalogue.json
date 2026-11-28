@@ -1844,13 +1844,10 @@
     "issue": "#39",
     "url": "https://github.com/owntech-foundation/Core-staging/issues/39",
     "criteria": [
-     "L0-TKD-21.a",
-     "L0-TKD-21.b",
      "L0-TKD-21.c",
-     "L0-TKD-21.d",
      "L0-TKD-21.e"
     ],
-    "note": "storeConversionParametersInMemory returns -1 on the CUT although the NVS version matches (0x0001) and 2008 bytes are free: a raw nvs_storage_store_data of 32 bytes returns -5 (-EIO) from nvs_write, so the flash write itself fails (L0-TKD-21.g); retrieve then finds nothing (-4). -5000 (DataAPI.h, pin not found) cannot fit the int8_t return: -2 comes back. Code review: retrieve sizes its buffer for 2 parameters (max_parameters_count), so an NTC entry (4) cannot be retrieved even once store works"
+    "note": "21.c: -5000 (DataAPI.h, pin not found) cannot fit the int8_t return: -2 comes back. 21.e: retrieveConversionParametersFromMemory on an NTC entry returns -4 after a reset: retrieve sizes its buffer for 2 parameters (max_parameters_count), so a 4-parameter thermistor entry is never read back. (21.a/b/d failed earlier with -EIO from the CUT's NVS flash state, 0xFF-programmed free slots, not Core; repaired by #42's sparse write-back, they pass since.)"
    }
   },
   {

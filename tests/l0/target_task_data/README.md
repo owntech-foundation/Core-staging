@@ -80,5 +80,5 @@ build adds about 55 s. The whole module, with its folded-in tests, from the camp
 | L0-TKD-18.c/.d, 19.e, 21.c | error returns are -2; DataAPI.h says -5000 (which an `int8_t` cannot even hold) |
 | L0-TKD-18.e | `convertValue` before `start()` with no parameters set reads through a null pointer (open question) |
 | L0-TKD-20.b | `getConversionParameterValue(r0/b/rdiv/t0)` returns the wrong NTC parameter (index off by two) |
-| L0-TKD-21.a/.b/.d/.e | `storeConversionParametersInMemory` returns -1 on the CUT: the NVS flash write itself fails (`-EIO`, L0-TKD-21.g); nothing to retrieve |
+| L0-TKD-21.e | `retrieveConversionParametersFromMemory` on an NTC entry returns -4 after a reset: retrieve sizes its buffer for 2 parameters, a thermistor entry has 4 (21.a/.b/.d failed earlier with `-EIO` from the CUT's NVS flash state, not Core; they pass since #42's repair) |
 | L0-TKD-22.e/.f | `start()` after `stop()` never returns |
